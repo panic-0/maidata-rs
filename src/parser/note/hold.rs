@@ -12,7 +12,7 @@ pub fn t_hold_modifier_str(s: NomSpan) -> PResult<Vec<char>> {
 
 pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     use nom::character::complete::char;
-    use nom::combinator::map;
+    use nom::combinator::{map, opt};
 
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, key) = t_key(s)?;
@@ -23,12 +23,12 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         m.extend(modifier_str.clone());
         m
     })(s)?;
-    let (s, mut dur) = ws(t_dur)(s)?;
+    let (s, dur) = opt(ws(t_dur))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
-    dur = dur.or_else(|| {
+    let dur = dur.flatten().or_else(|| {
         s.extra.borrow_mut().add_warning(
-            PWarning::MissingDuration(NoteType::Hold),
+            PWarning::MissingDuration(NoteType::TouchHold),
             (start_loc, end_loc).into(),
         );
         Some(Duration::default())
