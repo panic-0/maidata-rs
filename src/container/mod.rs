@@ -20,6 +20,8 @@ pub struct Maidata {
     _star_bpm: Option<f64>,
 
     difficulties: Vec<BeatmapData>,
+
+    shortid: Option<String>,
 }
 
 impl Maidata {
@@ -38,6 +40,10 @@ impl Maidata {
                 global: self,
                 map: diff,
             })
+    }
+
+    pub fn shortid(&self) -> Option<&str> {
+        self.shortid.as_deref()
     }
 }
 
@@ -208,6 +214,9 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
             }
             "smsg" | "freemsg" => {
                 result.fallback_single_message = Some(v.to_owned());
+            }
+            "shortid" => {
+                result.shortid = Some(v.to_owned());
             }
             _ => (),
             // _ => println!("unimplemented property: {} = {}", k, v),
