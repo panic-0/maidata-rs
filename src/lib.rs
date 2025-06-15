@@ -27,6 +27,21 @@ pub enum Difficulty {
     Original = 7,
 }
 
+impl std::fmt::Display for Difficulty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Difficulty::Easy => "EASY",
+            Difficulty::Basic => "BASIC",
+            Difficulty::Advanced => "ADVANCED",
+            Difficulty::Expert => "EXPERT",
+            Difficulty::Master => "MASTER",
+            Difficulty::ReMaster => "Re:MASTER",
+            Difficulty::Original => "ORIGINAL",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Level {
     /// The "Lv.X" form.
