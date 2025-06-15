@@ -179,6 +179,16 @@ pub enum Duration {
     Seconds(f64),
 }
 
+impl Default for Duration {
+    fn default() -> Self {
+        Duration::NumBeats(NumBeatsParams {
+            bpm: None,
+            divisor: 1,
+            num: 0,
+        })
+    }
+}
+
 impl Duration {
     pub fn bpm(&self) -> Option<f64> {
         match self {

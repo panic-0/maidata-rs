@@ -8,6 +8,8 @@ pub enum PWarning {
     DuplicateModifier(char, NoteType),
     MultipleSlideTrackGroups,
     MissingSlideStartKey,
+
+    MissingDuration(NoteType),
 }
 
 impl std::fmt::Display for PWarning {
@@ -22,6 +24,8 @@ impl std::fmt::Display for PWarning {
             PWarning::MissingSlideStartKey => {
                 write!(f, "missing start key in slide instruction")
             }
+
+            PWarning::MissingDuration(t) => write!(f, "missing {} duration", t),
         }
     }
 }

@@ -23,8 +23,16 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         m.extend(modifier_str.clone());
         m
     })(s)?;
-    let (s, dur) = ws(t_dur).expect(PError::MissingDuration(NoteType::Hold))(s)?;
+    let (s, mut dur) = ws(t_dur)(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
+
+    dur = dur.or_else(|| {
+        s.extra.borrow_mut().add_warning(
+            PWarning::MissingDuration(NoteType::Hold),
+            (start_loc, end_loc).into(),
+        );
+        Some(Duration::default())
+    });
 
     let mut modifier = HoldModifier::default();
     for x in &modifier_str {
@@ -54,7 +62,6 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let span = (start_loc, end_loc);
     Ok((
         s,
-        dur.flatten()
-            .map(|dur| RawNoteInsn::Hold(HoldParams { key, dur, modifier }).with_span(span)),
+        dur.map(|dur| RawNoteInsn::Hold(HoldParams { key, dur, modifier }).with_span(span)),
     ))
 }
