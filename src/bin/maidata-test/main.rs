@@ -23,15 +23,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::error::Error>> {
-    let content = read_file(path);
+    let content = maidata::app::read_file(path);
     let (maidata, state) = maidata::container::lex_maidata(&content);
-    // assert!(!state.has_messages());
-    for error in &state.errors {
-        eprintln!("Error: {}", error);
-    }
-    for warning in &state.warnings {
-        eprintln!("Warning: {}", warning);
-    }
+    maidata::app::print_state_messages(&state);
 
     for diff in maidata.iter_difficulties() {
         diff.iter_insns().for_each(|insn| {
@@ -41,10 +35,4 @@ fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::
     }
 
     Ok(())
-}
-
-fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
-    let content = std::fs::read(path.as_ref())
-        .unwrap_or_else(|_| panic!("reading file {:?} failed", path.as_ref()));
-    String::from_utf8(content).expect("decoding file content as utf-8 failed")
 }

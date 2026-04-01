@@ -22,15 +22,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let filename = std::env::args()
         .nth(1)
         .expect("usage: $0 <path/to/maidata.txt>");
-    let content = read_file(filename);
+    let content = maidata::app::read_file(filename);
     let (maidata, state) = maidata::container::lex_maidata(&content);
-    // assert!(!state.has_messages());
-    for error in &state.errors {
-        eprintln!("Error: {}", error);
-    }
-    for warning in &state.warnings {
-        eprintln!("Warning: {}", warning);
-    }
+    maidata::app::print_state_messages(&state);
 
     println!("title = {}", maidata.title());
     println!("artist = {}", maidata.artist());
@@ -66,10 +60,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-}
-
-fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
-    let content = std::fs::read(path.as_ref())
-        .unwrap_or_else(|_| panic!("reading file {:?} failed", path.as_ref()));
-    String::from_utf8(content).expect("decoding file content as utf-8 failed")
 }

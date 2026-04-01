@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir() && e.file_name() == "maidata.txt")
-        .map(|e| read_file(e.path()))
+        .map(|e| maidata::app::read_file(e.path()))
         .map(|content| {
             let (maidata, state) = maidata::container::lex_maidata(&content);
             assert!(!state.has_messages());
@@ -272,10 +272,4 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
             .filter(|group| !group.is_empty())
             .collect(),
     )
-}
-
-fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
-    let content = std::fs::read(path.as_ref())
-        .unwrap_or_else(|_| panic!("reading file {:?} failed", path.as_ref()));
-    String::from_utf8(content).expect("decoding file content as utf-8 failed")
 }

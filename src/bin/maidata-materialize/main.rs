@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|x| x.parse::<f64>().expect("parsing offset failed"))
         .unwrap_or(0.0);
 
-    let content = read_file(input);
+    let content = maidata::app::read_file(input);
     let (insns, state) = maidata::container::parse_maidata_insns(&content);
 
     let mut mcx = maidata::materialize::MaterializationContext::with_offset(offset);
@@ -55,10 +55,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(output, json_str).expect("writing json file failed");
 
     Ok(())
-}
-
-fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
-    let content = std::fs::read(path.as_ref())
-        .unwrap_or_else(|_| panic!("reading file {:?} failed", path.as_ref()));
-    String::from_utf8(content).expect("decoding file content as utf-8 failed")
 }
