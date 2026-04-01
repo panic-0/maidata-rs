@@ -11,13 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 {1}3,
 "#;
     let (notes, state) = parse_maidata_insns(maidata);
-    // assert!(!state.has_messages());
-    for error in &state.errors {
-        eprintln!("Error: {}", error);
-    }
-    for warning in &state.warnings {
-        eprintln!("Warning: {}", warning);
-    }
+    maidata::app::print_state_messages(&state);
     let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
     let mut notes = mcx
         .materialize_insns(&notes)
