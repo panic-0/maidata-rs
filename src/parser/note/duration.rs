@@ -19,7 +19,7 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
 
     if divisor == 0 {
         s.extra.borrow_mut().add_error(
-            PError::InvalidBeatDivisor(format!("{}:{}", divisor, num)),
+            PError::InvalidBeatDivisor(format!("{divisor}:{num}")),
             (start_loc, end_loc).into(),
         );
         return Ok((s, None));
@@ -73,7 +73,7 @@ pub fn t_dur_spec_absolute(s: NomSpan) -> PResult<Option<Duration>> {
     // dur can be 0
     if !dur.is_finite() || dur < 0.0 {
         s.extra.borrow_mut().add_error(
-            PError::InvalidDuration(format!("#{}", dur)),
+            PError::InvalidDuration(format!("#{dur}")),
             (start_loc, end_loc).into(),
         );
         return Ok((s, None));

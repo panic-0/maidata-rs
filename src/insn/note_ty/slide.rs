@@ -71,18 +71,18 @@ impl std::fmt::Display for SlideDuration {
             return Err(std::fmt::Error);
         }
         match self {
-            Self::Simple(duration) => write!(f, "{}", duration),
+            Self::Simple(duration) => write!(f, "{duration}"),
             Self::Custom(spec, duration) => match spec {
                 SlideStopTimeSpec::Bpm(bpm) => {
                     if let Duration::Seconds(seconds) = duration {
-                        write!(f, "{}#{}", bpm, seconds)
+                        write!(f, "{bpm}#{seconds}")
                     } else {
                         unreachable!()
                     }
                 }
                 SlideStopTimeSpec::Seconds(seconds) => match duration {
-                    Duration::Seconds(dur) => write!(f, "{}##{}", seconds, dur),
-                    _ => write!(f, "{}##{}", seconds, duration),
+                    Duration::Seconds(dur) => write!(f, "{seconds}##{dur}"),
+                    _ => write!(f, "{seconds}##{duration}"),
                 },
             },
         }
@@ -112,7 +112,7 @@ impl std::fmt::Display for SlideParams {
             self.start,
             self.tracks
                 .iter()
-                .map(|x| format!("{}", x))
+                .map(|x| format!("{x}"))
                 .collect::<Vec<_>>()
                 .join("*")
         )
@@ -144,7 +144,7 @@ pub struct SlideTrack {
 impl std::fmt::Display for SlideTrack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for segment in self.segments.iter() {
-            write!(f, "{}", segment)?;
+            write!(f, "{segment}")?;
         }
         write!(f, "[{}]{}", self.dur, self.modifier)
     }

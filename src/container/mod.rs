@@ -247,7 +247,7 @@ impl std::convert::TryFrom<NomSpan<'_>> for crate::Level {
     fn try_from(value: NomSpan) -> Result<Self, Self::Error> {
         match t_level(value) {
             Ok((_, value)) => Ok(value),
-            Err(e) => Err(format!("{:?}", e)),
+            Err(e) => Err(format!("{e:?}")),
         }
     }
 }

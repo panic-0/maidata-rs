@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let duration = start.elapsed();
-    println!("Time: {:?}", duration);
+    println!("Time: {duration:?}");
 
     Ok(())
 }
@@ -30,7 +30,7 @@ fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::
     for diff in maidata.iter_difficulties() {
         diff.iter_insns().for_each(|insn| {
             let insn = insn.deref();
-            println!("{:?}", insn);
+            println!("{insn:?}");
         });
     }
 

@@ -106,7 +106,7 @@ pub trait Expect<'a, T> {
     fn expect(self, error: PError) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Option<T>>;
 }
 
-impl<'a, T, U: 'a + FnMut(NomSpan<'a>) -> PResult<T>> Expect<'a, T> for U {
+impl<'a, T, U: 'a + FnMut(NomSpan<'a>) -> PResult<'a, T>> Expect<'a, T> for U {
     fn expect(self, error: PError) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Option<T>> {
         expect(self, error)
     }
@@ -147,7 +147,7 @@ where
             let (_, end_loc) = nom_locate::position(i)?;
             i3.extra.borrow_mut().add_error(
                 PError::ExpectedBefore {
-                    expected: format!("`{}`", start),
+                    expected: format!("`{start}`"),
                     location: inner_name.to_string(),
                 },
                 (end_loc, end_loc).into(),
@@ -158,8 +158,8 @@ where
             i3.extra.borrow_mut().add_error(
                 PError::ExpectedBetween {
                     expected: inner_name.to_string(),
-                    previous: format!("`{}`", start),
-                    next: format!("`{}`", end),
+                    previous: format!("`{start}`"),
+                    next: format!("`{end}`"),
                 },
                 (end_loc, end_loc).into(),
             );
@@ -168,7 +168,7 @@ where
             let (_, end_loc) = nom_locate::position(i2)?;
             i3.extra.borrow_mut().add_error(
                 PError::ExpectedAfter {
-                    expected: format!("`{}`", end),
+                    expected: format!("`{end}`"),
                     location: inner_name.to_string(),
                 },
                 (end_loc, end_loc).into(),

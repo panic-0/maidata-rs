@@ -12,9 +12,9 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> String {
 /// Print warnings and errors from parser state to stderr.
 pub fn print_state_messages(state: &State) {
     for warning in &state.warnings {
-        eprintln!("Warning: {}", warning);
+        eprintln!("Warning: {warning}");
     }
     for error in &state.errors {
-        eprintln!("Error: {}", error);
+        eprintln!("Error: {error}");
     }
 }

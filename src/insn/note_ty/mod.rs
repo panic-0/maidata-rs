@@ -22,7 +22,7 @@ impl Serialize for Key {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&format!("{}", self))
+        serializer.serialize_str(&format!("{self}"))
     }
 }
 
@@ -64,7 +64,7 @@ pub enum KeyParseError {
 impl std::fmt::Display for KeyParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            KeyParseError::InvalidKey(x) => write!(f, "invalid key: {}", x),
+            KeyParseError::InvalidKey(x) => write!(f, "invalid key: {x}"),
         }
     }
 }
@@ -88,7 +88,7 @@ impl Serialize for TouchSensor {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&format!("{}", self))
+        serializer.serialize_str(&format!("{self}"))
     }
 }
 
@@ -223,8 +223,8 @@ impl std::ops::Add<Duration> for Duration {
 impl std::fmt::Display for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NumBeats(params) => write!(f, "{}", params),
-            Self::Seconds(seconds) => write!(f, "#{}", seconds),
+            Self::NumBeats(params) => write!(f, "{params}"),
+            Self::Seconds(seconds) => write!(f, "#{seconds}"),
         }
     }
 }
@@ -239,7 +239,7 @@ pub struct NumBeatsParams {
 impl std::fmt::Display for NumBeatsParams {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(bpm) = self.bpm {
-            write!(f, "{}#", bpm)?;
+            write!(f, "{bpm}#")?;
         }
         write!(f, "{}:{}", self.divisor, self.num)
     }

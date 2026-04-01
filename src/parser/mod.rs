@@ -134,7 +134,7 @@ fn t_beat_divisor_param_float(s: NomSpan) -> PResult<Option<BeatDivisorParams>> 
 
     if !dur.is_finite() || dur <= 0.0 {
         s.extra.borrow_mut().add_error(
-            PError::InvalidBeatDivisor(format!("#{}", dur)),
+            PError::InvalidBeatDivisor(format!("#{dur}")),
             (start_loc, end_loc).into(),
         );
         return Ok((s, None));

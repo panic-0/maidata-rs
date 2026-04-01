@@ -26,7 +26,7 @@ fn t_slide_dur_spec_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
     }
     if !dur.is_finite() || dur <= 0.0 {
         s.extra.borrow_mut().add_error(
-            PError::InvalidDuration(format!("#{}", dur)),
+            PError::InvalidDuration(format!("#{dur}")),
             (start_loc, end_loc).into(),
         );
         return Ok((s, None));
@@ -297,7 +297,7 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
     if let Some(start_key) = start_key {
         if !validate_slide_track(start_key, &track) {
             s.extra.borrow_mut().add_error(
-                PError::InvalidSlideTrack(format!("{}{}", start_key, track)),
+                PError::InvalidSlideTrack(format!("{start_key}{track}")),
                 (start_loc, end_loc).into(),
                 // "invalid slide track instruction".to_string(),
             );

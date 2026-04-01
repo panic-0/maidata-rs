@@ -47,9 +47,9 @@ impl std::fmt::Display for Level {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Level::*;
         match self {
-            Normal(lv) => write!(f, "{}", lv)?,
-            Plus(lv) => write!(f, "{}+", lv)?,
-            Char(lv) => write!(f, "{}", lv)?,
+            Normal(lv) => write!(f, "{lv}")?,
+            Plus(lv) => write!(f, "{lv}+")?,
+            Char(lv) => write!(f, "{lv}")?,
         }
 
         Ok(())

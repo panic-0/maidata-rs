@@ -3,8 +3,8 @@ use std::ops::Deref;
 
 fn print_raw_insn(insn: &RawInsn) {
     match insn {
-        RawInsn::Bpm(params) => print!("({})", params),
-        RawInsn::BeatDivisor(params) => print!("{{{}}}", params),
+        RawInsn::Bpm(params) => print!("({params})"),
+        RawInsn::BeatDivisor(params) => print!("{{{params}}}"),
         RawInsn::Rest => print!(","),
         RawInsn::Notes(note_bundle) => print!(
             "{},",
@@ -37,12 +37,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "  level {}",
             diff.level()
-                .map_or(Cow::Borrowed("<not set>"), |x| Cow::Owned(format!("{}", x)))
+                .map_or(Cow::Borrowed("<not set>"), |x| Cow::Owned(format!("{x}")))
         );
         println!(
             "  offset {}",
             diff.offset()
-                .map_or(Cow::Borrowed("<not set>"), |x| Cow::Owned(format!("{}", x)))
+                .map_or(Cow::Borrowed("<not set>"), |x| Cow::Owned(format!("{x}")))
         );
         println!("  designer {}", diff.designer().unwrap_or("<not set>"));
         println!(

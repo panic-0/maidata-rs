@@ -14,7 +14,7 @@ impl std::fmt::Display for PWarning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PWarning::DuplicateModifier(c, t) => {
-                write!(f, "duplicate `{}` modifier in {} instruction", c, t)
+                write!(f, "duplicate `{c}` modifier in {t} instruction")
             }
             PWarning::MultipleSlideTrackGroups => {
                 write!(f, "multiple slide track groups in slide instruction")
@@ -70,28 +70,28 @@ pub enum PError {
 impl std::fmt::Display for PError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PError::UnknownChar(c) => write!(f, "unknown character `{}`", c),
+            PError::UnknownChar(c) => write!(f, "unknown character `{c}`"),
 
             PError::ExpectedBefore {
                 expected,
                 location: after,
             } => {
-                write!(f, "expected {} before {}", expected, after)
+                write!(f, "expected {expected} before {after}")
             }
             PError::ExpectedAfter {
                 expected,
                 location: before,
             } => {
-                write!(f, "expected {} after {}", expected, before)
+                write!(f, "expected {expected} after {before}")
             }
             PError::ExpectedBetween {
                 expected,
                 previous: before,
                 next: after,
-            } => write!(f, "expected {} between {} and {}", expected, before, after),
+            } => write!(f, "expected {expected} between {before} and {after}"),
 
             PError::MissingBeatsNum => write!(f, "missing number of beats"),
-            PError::MissingDuration(t) => write!(f, "missing {} duration", t),
+            PError::MissingDuration(t) => write!(f, "missing {t} duration"),
             PError::MissingNote => write!(f, "missing note"),
             PError::MissingSlideStartKey => write!(f, "missing slide start key"),
             PError::MissingSlideTrack => write!(f, "missing slide track"),
@@ -99,16 +99,16 @@ impl std::fmt::Display for PError {
                 write!(f, "missing slide destination key")
             }
 
-            PError::InvalidBpm(s) => write!(f, "invalid bpm {}", s),
-            PError::InvalidBeatDivisor(s) => write!(f, "invalid beat divisor `{}`", s),
-            PError::InvalidDuration(s) => write!(f, "invalid duration `{}`", s),
-            PError::InvalidSlideStopTime(s) => write!(f, "invalid slide stop time {}", s),
-            PError::InvalidSlideTrack(s) => write!(f, "invalid slide track `{}`", s),
+            PError::InvalidBpm(s) => write!(f, "invalid bpm {s}"),
+            PError::InvalidBeatDivisor(s) => write!(f, "invalid beat divisor `{s}`"),
+            PError::InvalidDuration(s) => write!(f, "invalid duration `{s}`"),
+            PError::InvalidSlideStopTime(s) => write!(f, "invalid slide stop time {s}"),
+            PError::InvalidSlideTrack(s) => write!(f, "invalid slide track `{s}`"),
 
             PError::DuplicateShapeModifier(t) => {
-                write!(f, "duplicate {} shape modifier", t)
+                write!(f, "duplicate {t} shape modifier")
             }
-            PError::DurationMismatch(t) => write!(f, "{} duration mismatch", t),
+            PError::DurationMismatch(t) => write!(f, "{t} duration mismatch"),
         }
     }
 }

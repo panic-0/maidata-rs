@@ -82,13 +82,13 @@ fn main() {
         })
     });
     for (k, v) in result.iter().take(2000) {
-        print!("{}: ", k);
+        print!("{k}: ");
         for bundle in v.iter() {
             for (i, note) in bundle.iter().enumerate() {
                 if i > 0 {
                     print!("/");
                 }
-                print!("{}", note);
+                print!("{note}");
             }
             print!(",");
         }
@@ -96,7 +96,7 @@ fn main() {
     }
 
     let duration = start.elapsed();
-    println!("Time: {:?}", duration);
+    println!("Time: {duration:?}");
 }
 
 // TODO: Note Bundle

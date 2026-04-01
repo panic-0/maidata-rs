@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let duration = start.elapsed();
-    println!("Time: {:?}", duration);
+    println!("Time: {duration:?}");
 
     Ok(())
 }

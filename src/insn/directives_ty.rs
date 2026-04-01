@@ -18,8 +18,8 @@ pub enum BeatDivisorParams {
 impl std::fmt::Display for BeatDivisorParams {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NewDivisor(x) => write!(f, "{}", x),
-            Self::NewAbsoluteDuration(x) => write!(f, "#{}", x),
+            Self::NewDivisor(x) => write!(f, "{x}"),
+            Self::NewAbsoluteDuration(x) => write!(f, "#{x}"),
         }
     }
 }

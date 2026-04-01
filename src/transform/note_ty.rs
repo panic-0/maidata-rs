@@ -59,7 +59,7 @@ impl std::fmt::Display for NormalizedSlideParams {
             self.start,
             self.tracks
                 .iter()
-                .map(|x| format!("{}", x))
+                .map(|x| format!("{x}"))
                 .collect::<Vec<_>>()
                 .join("*")
         )
@@ -78,7 +78,7 @@ impl std::fmt::Display for NormalizedSlideTrack {
             "{}",
             self.segments
                 .iter()
-                .map(|x| format!("{}", x))
+                .map(|x| format!("{x}"))
                 .collect::<Vec<_>>()
                 .join("")
         )
@@ -198,11 +198,11 @@ pub enum NormalizedNote {
 impl std::fmt::Display for NormalizedNote {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            NormalizedNote::Tap(params) => write!(f, "{}", params),
-            NormalizedNote::Touch(params) => write!(f, "{}", params),
-            NormalizedNote::Hold(params) => write!(f, "{}", params),
-            NormalizedNote::TouchHold(params) => write!(f, "{}", params),
-            NormalizedNote::Slide(params) => write!(f, "{}", params),
+            NormalizedNote::Tap(params) => write!(f, "{params}"),
+            NormalizedNote::Touch(params) => write!(f, "{params}"),
+            NormalizedNote::Hold(params) => write!(f, "{params}"),
+            NormalizedNote::TouchHold(params) => write!(f, "{params}"),
+            NormalizedNote::Slide(params) => write!(f, "{params}"),
         }
     }
 }
