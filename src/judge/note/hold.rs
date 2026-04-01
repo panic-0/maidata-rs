@@ -2,7 +2,6 @@ use super::{
     key_to_sensor, JudgeNote, JudgeType, OnSensorResult, Timing, TouchSensorStates, JUDGE_DATA,
 };
 use crate::insn::TouchSensor;
-use crate::materialize::MaterializedHold;
 
 #[derive(Clone, Debug)]
 pub struct Hold {
@@ -21,15 +20,15 @@ pub struct Hold {
     result: Option<Timing>,
 }
 
-impl From<MaterializedHold> for Hold {
-    fn from(m: MaterializedHold) -> Self {
+impl Hold {
+    pub fn new(key: crate::insn::Key, appear_time: f64, tail_time: f64, is_break: bool, is_ex: bool) -> Self {
         Self {
-            appear_time: m.ts,
-            tail_time: m.ts + m.dur,
-            sensor: key_to_sensor(m.key),
-            _is_break: m.is_break,
-            _is_ex: m.is_ex,
-            head_judge_type: if m.is_ex {
+            sensor: key_to_sensor(key),
+            appear_time,
+            tail_time,
+            _is_break: is_break,
+            _is_ex: is_ex,
+            head_judge_type: if is_ex {
                 JudgeType::ExTap
             } else {
                 JudgeType::Tap

@@ -1,6 +1,5 @@
 use super::{JudgeNote, JudgeType, OnSensorResult, Timing, TouchSensorStates, JUDGE_DATA};
 use crate::insn::TouchSensor;
-use crate::materialize::MaterializedTouch;
 
 #[derive(Clone, Debug)]
 pub struct Touch {
@@ -12,11 +11,11 @@ pub struct Touch {
     result: Option<Timing>,
 }
 
-impl From<MaterializedTouch> for Touch {
-    fn from(m: MaterializedTouch) -> Self {
+impl Touch {
+    pub fn new(sensor: TouchSensor, appear_time: f64) -> Self {
         Self {
-            sensor: m.sensor,
-            appear_time: m.ts,
+            sensor,
+            appear_time,
             judge_type: JudgeType::Touch,
             result: None,
         }

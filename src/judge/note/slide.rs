@@ -1,11 +1,5 @@
-use super::super::slide_data_getter::SLIDE_DATA_GETTER;
 use super::{JudgeNote, JudgeType, Timing, TouchSensorStates, JUDGE_DATA};
 use crate::insn::TouchSensor;
-use crate::materialize::{MaterializedSlideSegment, MaterializedSlideTrack};
-use crate::transform::{
-    NormalizedSlideSegment, NormalizedSlideSegmentParams, NormalizedSlideSegmentShape,
-    NormalizedSlideTrack,
-};
 
 #[derive(Clone, Debug)]
 pub struct Slide {
@@ -25,76 +19,37 @@ pub struct Slide {
     result: Option<Timing>,
 }
 
-impl TryFrom<MaterializedSlideTrack> for Slide {
-    type Error = &'static str;
-
-    fn try_from(m: MaterializedSlideTrack) -> Result<Self, Self::Error> {
-        if m.segments
-            .iter()
-            .any(|segment| segment.shape == NormalizedSlideSegmentShape::Fan)
-        {
-            return Err("Fan Slide is not supported");
-        }
-        let dur = m.dur;
-        let normalized_track = NormalizedSlideTrack {
-            segments: m
-                .segments
-                .iter()
-                .map(materialized_to_normalized_slide_segment)
-                .collect::<Vec<_>>(),
-        };
-
-        // Why check head???
-        let head_segment = normalized_track.segments[0];
-        let tail_segment = normalized_track.segments.last().unwrap();
-        let head_is_thunder = head_segment.shape() == NormalizedSlideSegmentShape::ThunderL
-            || head_segment.shape() == NormalizedSlideSegmentShape::ThunderR;
-        let mut distance = (tail_segment.params().destination.index() + 8
-            - head_segment.params().start.index())
-            % 8;
-        if head_segment.shape() == NormalizedSlideSegmentShape::ThunderR {
-            distance = (8 - distance) % 8;
-        }
-
-        Ok(Self {
-            path: SLIDE_DATA_GETTER
-                .get_path(&normalized_track)
-                .ok_or("Slide path not found")?,
-            appear_time: m.ts,
-            tail_time: m.start_ts + dur,
-            _is_break: m.is_break,
-            judge_check_sensor_1: head_is_thunder && (1..=4).contains(&distance),
-            judge_check_sensor_3: head_is_thunder && distance == 4,
-            judge_type: JudgeType::Slide,
-            judge_index: 0,
-            judge_is_on: false,
-            judge_sub_sensor: None,
-            result: None,
-        })
-    }
-}
-
 impl Slide {
-    pub fn from_fan_single_segment(
-        segment: &MaterializedSlideSegment,
-        parent: &MaterializedSlideTrack,
-    ) -> Result<Self, &'static str> {
-        assert!(segment.shape == NormalizedSlideSegmentShape::Fan);
-        Ok(Self {
-            path: SLIDE_DATA_GETTER
-                .get_path_by_segment(&materialized_to_normalized_slide_segment(segment))
-                .ok_or("Slide path not found")?,
-            appear_time: parent.ts,
-            tail_time: parent.start_ts + parent.dur,
-            _is_break: parent.is_break,
-            judge_check_sensor_1: false,
-            judge_check_sensor_3: false,
+    pub fn new(
+        path: Vec<Vec<TouchSensor>>,
+        appear_time: f64,
+        tail_time: f64,
+        is_break: bool,
+        judge_check_sensor_1: bool,
+        judge_check_sensor_3: bool,
+    ) -> Self {
+        Self {
+            path,
+            appear_time,
+            tail_time,
+            _is_break: is_break,
+            judge_check_sensor_1,
+            judge_check_sensor_3,
             judge_type: JudgeType::Slide,
             judge_index: 0,
             judge_is_on: false,
             judge_sub_sensor: None,
             result: None,
-        })
+        }
+    }
+
+    pub(crate) fn from_path(
+        path: Vec<Vec<TouchSensor>>,
+        appear_time: f64,
+        tail_time: f64,
+        is_break: bool,
+    ) -> Self {
+        Self::new(path, appear_time, tail_time, is_break, false, false)
     }
 }
 
@@ -195,16 +150,4 @@ impl JudgeNote for Slide {
     fn get_judge_result(&self) -> Option<Timing> {
         self.result
     }
-}
-
-fn materialized_to_normalized_slide_segment(
-    segment: &MaterializedSlideSegment,
-) -> NormalizedSlideSegment {
-    NormalizedSlideSegment::new(
-        segment.shape,
-        NormalizedSlideSegmentParams {
-            start: segment.start,
-            destination: segment.destination,
-        },
-    )
 }

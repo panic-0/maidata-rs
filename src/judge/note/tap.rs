@@ -2,7 +2,6 @@ use super::{
     key_to_sensor, JudgeNote, JudgeType, OnSensorResult, Timing, TouchSensorStates, JUDGE_DATA,
 };
 use crate::insn::TouchSensor;
-use crate::materialize::MaterializedTap;
 
 #[derive(Clone, Debug)]
 pub struct Tap {
@@ -16,14 +15,14 @@ pub struct Tap {
     result: Option<Timing>,
 }
 
-impl From<MaterializedTap> for Tap {
-    fn from(m: MaterializedTap) -> Self {
+impl Tap {
+    pub fn new(key: crate::insn::Key, appear_time: f64, is_break: bool, is_ex: bool) -> Self {
         Self {
-            sensor: key_to_sensor(m.key),
-            appear_time: m.ts,
-            _is_break: m.is_break,
-            _is_ex: m.is_ex,
-            judge_type: if m.is_ex {
+            sensor: key_to_sensor(key),
+            appear_time,
+            _is_break: is_break,
+            _is_ex: is_ex,
+            judge_type: if is_ex {
                 JudgeType::ExTap
             } else {
                 JudgeType::Tap

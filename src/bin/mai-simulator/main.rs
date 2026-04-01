@@ -1,5 +1,6 @@
 use maidata::container::parse_maidata_insns;
 use maidata::insn::TouchSensor;
+use maidata::judge::adapter::convert_note;
 use maidata::judge::note::{JudgeNote, Note};
 use maidata::judge::simulator::MaiSimulator;
 
@@ -21,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut notes = mcx
         .materialize_insns(&notes)
         .into_iter()
-        .map(|note| Note::try_from((*note).clone()))
+        .map(|note| convert_note((*note).clone()))
         .collect::<Result<Vec<Note>, _>>()?;
     notes.sort_by(|a, b| a.get_start_time().partial_cmp(&b.get_start_time()).unwrap());
 
