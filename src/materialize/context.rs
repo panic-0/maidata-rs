@@ -232,9 +232,10 @@ fn materialize_slide_track(
         .segments
         .iter()
         .map(|segment| {
-            let result = materialize_slide_segment(start_key, segment);
+            // TODO: handle normalization error
+            let normalized = transform::normalize::normalize_slide_segment(start_key, segment).unwrap();
             start_key = segment.params().destination;
-            result
+            materialize_slide_segment(normalized)
         })
         .collect();
 
@@ -250,42 +251,13 @@ fn materialize_slide_track(
     }
 }
 
-// fn materialize_slide_segment_group(
-//     beat_dur: f64,
-//     start: insn::Key,
-//     group: &insn::SlideSegmentGroup,
-// ) -> MaterializedSlideSegmentGroup {
-//     let mut start = start;
-//     let segments = group
-//         .segments
-//         .iter()
-//         .map(|segment| {
-//             let result = materialize_slide_segment(start, segment);
-//             // TODO: trait for slide end position
-//             start = segment.params().destination;
-//             result
-//         })
-//         .collect();
-
-//     MaterializedSlideSegmentGroup {
-//         dur: materialize_duration(group.dur.slide_duration(), beat_dur),
-//         segments,
-//     }
-// }
-
 fn materialize_slide_segment(
-    start: insn::Key,
-    segment: &insn::SlideSegment,
+    normalized: crate::transform::NormalizedSlideSegment,
 ) -> MaterializedSlideSegment {
-    // TODO: handle normalization error
-    let segment = transform::normalize::normalize_slide_segment(start, segment).unwrap();
-    let shape = segment.shape();
-    let params = segment.params();
-
     MaterializedSlideSegment {
-        start: params.start,
-        destination: params.destination,
-        shape,
+        start: normalized.params().start,
+        destination: normalized.params().destination,
+        shape: normalized.shape(),
     }
 }
 
