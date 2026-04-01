@@ -1,104 +1,12 @@
-use crate::parser::{NomSpan, PResult, State};
+use crate::diag::State;
+use crate::maidata_file::{BeatmapData, Maidata};
+use crate::span::{NomSpan, PResult};
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct KeyVal<'a> {
     pub key: NomSpan<'a>,
     pub val: NomSpan<'a>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct Maidata {
-    title: String,
-    artist: String,
-
-    fallback_designer: Option<String>,
-    fallback_offset: Option<f64>,
-    fallback_single_message: Option<String>,
-
-    // XXX: is wholebpm mandatory?
-    _star_bpm: Option<f64>,
-
-    difficulties: Vec<BeatmapData>,
-}
-
-impl Maidata {
-    pub fn title(&self) -> &str {
-        &self.title
-    }
-
-    pub fn artist(&self) -> &str {
-        &self.artist
-    }
-
-    pub fn iter_difficulties(&self) -> impl Iterator<Item = AssociatedBeatmapData> {
-        self.difficulties
-            .iter()
-            .map(move |diff| AssociatedBeatmapData {
-                global: self,
-                map: diff,
-            })
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct BeatmapData {
-    difficulty: crate::Difficulty,
-    designer: Option<String>,
-    offset: Option<f64>,
-    level: Option<crate::Level>,
-    insns: Vec<crate::Sp<crate::insn::RawInsn>>,
-    single_message: Option<String>,
-}
-
-impl BeatmapData {
-    pub(crate) fn default_with_difficulty(difficulty: crate::Difficulty) -> Self {
-        Self {
-            difficulty,
-            designer: None,
-            offset: None,
-            level: None,
-            insns: vec![],
-            single_message: None,
-        }
-    }
-}
-
-pub struct AssociatedBeatmapData<'a> {
-    global: &'a Maidata,
-    map: &'a BeatmapData,
-}
-
-impl<'a> AssociatedBeatmapData<'a> {
-    pub fn difficulty(&self) -> crate::Difficulty {
-        self.map.difficulty
-    }
-
-    pub fn designer(&self) -> Option<&str> {
-        self.map
-            .designer
-            .as_deref()
-            .or(self.global.fallback_designer.as_deref())
-    }
-
-    pub fn offset(&self) -> Option<f64> {
-        self.map.offset.or(self.global.fallback_offset)
-    }
-
-    pub fn level(&self) -> Option<crate::Level> {
-        self.map.level
-    }
-
-    pub fn iter_insns(&self) -> impl Iterator<Item = &crate::Sp<crate::insn::RawInsn>> {
-        self.map.insns.iter()
-    }
-
-    pub fn single_message(&self) -> Option<&str> {
-        self.map
-            .single_message
-            .as_deref()
-            .or(self.global.fallback_single_message.as_deref())
-    }
 }
 
 pub fn parse_maidata_insns(x: &str) -> (Vec<crate::Sp<crate::insn::RawInsn>>, State) {
@@ -129,21 +37,21 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
                         let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
-                        data.designer = Some(v.to_owned());
+                        data.set_designer(v.to_owned());
                         handled = true;
                     }
                     concat!("first_", stringify!($num)) => {
                         let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
-                        data.offset = Some(v.parse().expect("parse offset failed"));
+                        data.set_offset(v.parse().expect("parse offset failed"));
                         handled = true;
                     }
                     concat!("inote_", stringify!($num)) => {
                         let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
-                        data.insns = crate::parser::parse_maidata_insns(kv.val).unwrap().1;
+                        data.set_insns(crate::parser::parse_maidata_insns(kv.val).unwrap().1);
                         handled = true;
                     }
                     concat!("lv_", stringify!($num)) => {
@@ -154,7 +62,7 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         match kv.val.try_into() {
                             Ok(lv) => {
-                                data.level = Some(lv);
+                                data.set_level(lv);
                             }
                             Err(_) => {
                                 // TODO
@@ -166,7 +74,7 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
                         let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
-                        data.single_message = Some(v.to_owned());
+                        data.set_single_message(v.to_owned());
                         handled = true;
                     }
                     _ => {}
@@ -188,15 +96,15 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
         // global variables
         match k {
             "title" => {
-                v.clone_into(&mut result.title);
+                result.set_title(v.to_owned());
             }
             "artist" => {
-                v.clone_into(&mut result.artist);
+                result.set_artist(v.to_owned());
             }
             "first" => {
                 match v.parse() {
                     Ok(offset) => {
-                        result.fallback_offset = Some(offset);
+                        result.set_fallback_offset(offset);
                     }
                     Err(_) => {
                         // TODO
@@ -204,10 +112,10 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
                 }
             }
             "des" => {
-                result.fallback_designer = Some(v.to_owned());
+                result.set_fallback_designer(v.to_owned());
             }
             "smsg" | "freemsg" => {
-                result.fallback_single_message = Some(v.to_owned());
+                result.set_fallback_single_message(v.to_owned());
             }
             _ => (),
             // _ => println!("unimplemented property: {} = {}", k, v),
@@ -215,8 +123,7 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
     }
 
     // put parsed difficulties into result
-    result.difficulties.extend(diff_map.into_values());
-    result.difficulties.sort_by_key(|x| x.difficulty);
+    result.set_difficulties(diff_map.into_values().collect());
 
     (result, state.into_inner())
 }

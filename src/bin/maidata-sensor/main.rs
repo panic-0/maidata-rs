@@ -1,4 +1,4 @@
-use maidata::container::{AssociatedBeatmapData, Maidata};
+use maidata::{AssociatedBeatmapData, Maidata};
 use std::time::Instant;
 use walkdir::WalkDir;
 

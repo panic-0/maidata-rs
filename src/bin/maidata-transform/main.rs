@@ -1,4 +1,4 @@
-use maidata::container::AssociatedBeatmapData;
+use maidata::AssociatedBeatmapData;
 use maidata::insn::RawInsn;
 use maidata::transform::{
     normalize::normalize_note,
