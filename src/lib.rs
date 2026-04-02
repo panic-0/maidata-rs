@@ -1,6 +1,7 @@
 pub mod app;
 pub mod container;
 pub mod diag;
+pub mod heatmap;
 pub mod insn;
 pub mod judge;
 pub mod maidata_file;
