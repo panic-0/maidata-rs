@@ -22,17 +22,10 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = TouchHoldModifier::default();
+    let span: Span = (start_loc, end_loc).into();
     for x in pre_mods.iter().chain(&post_mods) {
         match *x {
-            'f' => {
-                if modifier.is_firework {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('f', NoteType::TouchHold),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_firework = true;
-            }
+            'f' => set_flag_or_warn(&s.extra, &mut modifier.is_firework, 'f', NoteType::TouchHold, span),
             _ => unreachable!(),
         }
     }

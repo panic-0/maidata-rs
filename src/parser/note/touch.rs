@@ -16,17 +16,10 @@ pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = TouchModifier::default();
+    let span: Span = (start_loc, end_loc).into();
     for x in &modifier_str {
         match *x {
-            'f' => {
-                if modifier.is_firework {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('f', NoteType::Touch),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_firework = true;
-            }
+            'f' => set_flag_or_warn(&s.extra, &mut modifier.is_firework, 'f', NoteType::Touch, span),
             _ => unreachable!(),
         }
     }

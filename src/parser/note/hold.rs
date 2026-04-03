@@ -22,26 +22,11 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = HoldModifier::default();
+    let span: Span = (start_loc, end_loc).into();
     for x in pre_mods.iter().chain(&post_mods) {
         match *x {
-            'b' => {
-                if modifier.is_break {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('b', NoteType::Hold),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_break = true;
-            }
-            'x' => {
-                if modifier.is_ex {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('x', NoteType::Hold),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_ex = true;
-            }
+            'b' => set_flag_or_warn(&s.extra, &mut modifier.is_break, 'b', NoteType::Hold, span),
+            'x' => set_flag_or_warn(&s.extra, &mut modifier.is_ex, 'x', NoteType::Hold, span),
             _ => unreachable!(),
         }
     }

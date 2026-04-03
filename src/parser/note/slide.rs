@@ -194,17 +194,10 @@ pub fn t_slide_track_modifier(
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, variants) = many0(ws(one_of("b")))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
+    let span: Span = (start_loc, end_loc).into();
     for x in &variants {
         match *x {
-            'b' => {
-                if modifier.is_break {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('b', NoteType::Slide),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_break = true;
-            }
+            'b' => set_flag_or_warn(&s.extra, &mut modifier.is_break, 'b', NoteType::Slide, span),
             _ => unreachable!(),
         }
     }
@@ -347,35 +340,12 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
 
     let mut start_modifier = TapModifier::default();
     let mut is_sudden = false;
+    let span: Span = (start_loc, end_loc).into();
     for x in &start_modifier_str {
         match *x.fragment() {
-            "b" => {
-                if start_modifier.is_break {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('b', NoteType::Slide),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                start_modifier.is_break = true;
-            }
-            "x" => {
-                if start_modifier.is_ex {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('x', NoteType::Slide),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                start_modifier.is_ex = true;
-            }
-            "!" => {
-                if is_sudden {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('!', NoteType::Slide),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                is_sudden = true;
-            }
+            "b" => set_flag_or_warn(&s.extra, &mut start_modifier.is_break, 'b', NoteType::Slide, span),
+            "x" => set_flag_or_warn(&s.extra, &mut start_modifier.is_ex, 'x', NoteType::Slide, span),
+            "!" => set_flag_or_warn(&s.extra, &mut is_sudden, '!', NoteType::Slide, span),
             _ => (),
         }
         let shape = match *x.fragment() {
@@ -387,9 +357,8 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         if let Some(shape) = shape {
             if start_modifier.shape.is_some() {
                 s.extra.borrow_mut().add_error(
-                    // TODO: better error message
                     PError::DuplicateShapeModifier(NoteType::Slide),
-                    (start_loc, end_loc).into(),
+                    span,
                 );
             } else {
                 start_modifier.shape = Some(shape);

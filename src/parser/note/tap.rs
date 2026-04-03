@@ -17,26 +17,11 @@ pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = TapModifier::default();
+    let span: Span = (start_loc, end_loc).into();
     for x in &modifier_str {
         match *x.fragment() {
-            "b" => {
-                if modifier.is_break {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('b', NoteType::Tap),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_break = true;
-            }
-            "x" => {
-                if modifier.is_ex {
-                    s.extra.borrow_mut().add_warning(
-                        PWarning::DuplicateModifier('x', NoteType::Tap),
-                        (start_loc, end_loc).into(),
-                    );
-                }
-                modifier.is_ex = true;
-            }
+            "b" => set_flag_or_warn(&s.extra, &mut modifier.is_break, 'b', NoteType::Tap, span),
+            "x" => set_flag_or_warn(&s.extra, &mut modifier.is_ex, 'x', NoteType::Tap, span),
             _ => (),
         }
         let shape = match *x.fragment() {

@@ -1,5 +1,21 @@
 use super::*;
 
+/// Set a boolean flag, emitting a DuplicateModifier warning if it was already set.
+pub fn set_flag_or_warn(
+    state: &std::cell::RefCell<crate::diag::State>,
+    flag: &mut bool,
+    c: char,
+    note_type: crate::insn::NoteType,
+    span: crate::Span,
+) {
+    if *flag {
+        state
+            .borrow_mut()
+            .add_warning(crate::diag::PWarning::DuplicateModifier(c, note_type), span);
+    }
+    *flag = true;
+}
+
 /// remove leading whitespace
 pub fn ws<'a, F, O>(f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, O>
 where

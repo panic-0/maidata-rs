@@ -5,6 +5,7 @@ mod state;
 mod utils;
 
 use crate::insn::*;
+use crate::Span;
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_tap_multi_simplified};
 use position::*;
