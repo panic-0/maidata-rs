@@ -28,12 +28,7 @@ pub fn t_bundle(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (s, _) = ws(t_note_sep)(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
-    let notes = {
-        let mut tmp = Vec::with_capacity(rest.len() + 1);
-        tmp.push(first);
-        tmp.extend(rest);
-        tmp.into_iter().flatten().collect::<Vec<_>>()
-    };
+    let notes: Vec<_> = std::iter::once(first).chain(rest).flatten().collect();
     if notes.is_empty() {
         return Ok((s, None));
     }
