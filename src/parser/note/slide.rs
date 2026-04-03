@@ -321,6 +321,47 @@ pub fn t_slide_head_modifier_str(s: NomSpan) -> PResult<Vec<NomSpan>> {
     Ok((s, variants))
 }
 
+struct SlideHeadModifier {
+    tap_modifier: TapModifier,
+    is_sudden: bool,
+}
+
+fn parse_slide_head_modifier(
+    s: NomSpan,
+    modifier_str: &[NomSpan],
+    span: Span,
+) -> SlideHeadModifier {
+    let mut tap_modifier = TapModifier::default();
+    let mut is_sudden = false;
+    for x in modifier_str {
+        match *x.fragment() {
+            "b" => set_flag_or_warn(&s.extra, &mut tap_modifier.is_break, 'b', NoteType::Slide, span),
+            "x" => set_flag_or_warn(&s.extra, &mut tap_modifier.is_ex, 'x', NoteType::Slide, span),
+            "!" => set_flag_or_warn(&s.extra, &mut is_sudden, '!', NoteType::Slide, span),
+            _ => (),
+        }
+        let shape = match *x.fragment() {
+            "@" => Some(TapShape::Ring),
+            "?" => Some(TapShape::Invalid),
+            "!" => Some(TapShape::Invalid),
+            _ => None,
+        };
+        if let Some(shape) = shape {
+            if tap_modifier.shape.is_some() {
+                s.extra
+                    .borrow_mut()
+                    .add_error(PError::DuplicateShapeModifier(NoteType::Slide), span);
+            } else {
+                tap_modifier.shape = Some(shape);
+            }
+        }
+    }
+    SlideHeadModifier {
+        tap_modifier,
+        is_sudden,
+    }
+}
+
 pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     use nom::combinator::opt;
     use nom::multi::many0;
@@ -338,36 +379,11 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             .add_error(PError::MissingSlideStartKey, (start_loc, end_loc).into());
     }
 
-    let mut start_modifier = TapModifier::default();
-    let mut is_sudden = false;
     let span: Span = (start_loc, end_loc).into();
-    for x in &start_modifier_str {
-        match *x.fragment() {
-            "b" => set_flag_or_warn(&s.extra, &mut start_modifier.is_break, 'b', NoteType::Slide, span),
-            "x" => set_flag_or_warn(&s.extra, &mut start_modifier.is_ex, 'x', NoteType::Slide, span),
-            "!" => set_flag_or_warn(&s.extra, &mut is_sudden, '!', NoteType::Slide, span),
-            _ => (),
-        }
-        let shape = match *x.fragment() {
-            "@" => Some(TapShape::Ring),
-            "?" => Some(TapShape::Invalid),
-            "!" => Some(TapShape::Invalid),
-            _ => None,
-        };
-        if let Some(shape) = shape {
-            if start_modifier.shape.is_some() {
-                s.extra.borrow_mut().add_error(
-                    PError::DuplicateShapeModifier(NoteType::Slide),
-                    span,
-                );
-            } else {
-                start_modifier.shape = Some(shape);
-            }
-        }
-    }
+    let head = parse_slide_head_modifier(s, &start_modifier_str, span);
     let start = start_key.map(|start_key| TapParams {
         key: start_key,
-        modifier: start_modifier,
+        modifier: head.tap_modifier,
     });
 
     let tracks = {
@@ -378,7 +394,7 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             .flatten()
             .map(|mut x| {
                 assert!(!x.modifier.is_sudden);
-                x.modifier.is_sudden = is_sudden;
+                x.modifier.is_sudden = head.is_sudden;
                 Ok(x)
             })
             .collect::<Result<Vec<_>, _>>()?
@@ -387,7 +403,6 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         return Ok((s, None));
     }
 
-    let span = (start_loc, end_loc);
     Ok((
         s,
         start.map(|start| RawNoteInsn::Slide(SlideParams { start, tracks }).with_span(span)),
