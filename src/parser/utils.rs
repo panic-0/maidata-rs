@@ -8,7 +8,10 @@ where
     nom::sequence::preceded(multispace0, f)
 }
 
-pub fn ws_list0<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
+fn ws_list_impl<'a, F, O>(
+    mut f: F,
+    require_first: bool,
+) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
 where
     F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
 {
@@ -19,7 +22,7 @@ where
         let mut res = Vec::new();
 
         match f(i) {
-            Err(Err::Error(_)) => return Ok((i, res)),
+            Err(Err::Error(_)) if !require_first => return Ok((i, res)),
             Err(e) => return Err(e),
             Ok((i1, o)) => {
                 res.push(o);
@@ -44,39 +47,18 @@ where
     }
 }
 
-pub fn ws_list1<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
+pub fn ws_list0<'a, F, O>(f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
 where
     F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
 {
-    // TODO: nom::multi::separated_list1(multispace0, f) will not work as expected (#1691)
-    // wait for nom 8.0.0...
-    use nom::Err;
-    move |mut i: NomSpan<'a>| {
-        let mut res = Vec::new();
+    ws_list_impl(f, false)
+}
 
-        match f(i) {
-            Err(e) => return Err(e),
-            Ok((i1, o)) => {
-                res.push(o);
-                i = i1;
-            }
-        }
-
-        loop {
-            match multispace0(i) {
-                Err(Err::Error(_)) => return Ok((i, res)),
-                Err(e) => return Err(e),
-                Ok((i1, _)) => match f(i1) {
-                    Err(Err::Error(_)) => return Ok((i, res)),
-                    Err(e) => return Err(e),
-                    Ok((i2, o)) => {
-                        res.push(o);
-                        i = i2;
-                    }
-                },
-            }
-        }
-    }
+pub fn ws_list1<'a, F, O>(f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
+where
+    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
+{
+    ws_list_impl(f, true)
 }
 
 pub fn expect<'a, F, T>(
