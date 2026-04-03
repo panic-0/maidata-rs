@@ -51,6 +51,7 @@ pub enum PError {
     MissingSlideStartKey,
     MissingSlideTrack,
     MissingSlideDestinationKey,
+    MissingSlideAngleDestinationKey,
 
     InvalidBpm(String),
     InvalidBeatDivisor(String),
@@ -92,6 +93,9 @@ impl std::fmt::Display for PError {
             PError::MissingSlideTrack => write!(f, "missing slide track"),
             PError::MissingSlideDestinationKey => {
                 write!(f, "missing slide destination key")
+            }
+            PError::MissingSlideAngleDestinationKey => {
+                write!(f, "missing destination key in V-shaped slide")
             }
 
             PError::InvalidBpm(s) => write!(f, "invalid bpm {s}"),

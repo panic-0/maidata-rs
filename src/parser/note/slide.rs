@@ -148,9 +148,15 @@ pub fn t_slide_segment_angle(s: NomSpan) -> PResult<Option<SlideSegment>> {
     use nom::character::complete::char;
 
     let (s, _) = char('V')(s)?;
-    // TODO: add warning if no interim
     let (s, interim) = ws(t_key).expect(PError::MissingSlideDestinationKey)(s)?;
     let (s, destination) = ws(t_key).expect(PError::MissingSlideDestinationKey)(s)?;
+
+    if interim.is_some() && destination.is_none() {
+        let (_, loc) = nom_locate::position(s)?;
+        s.extra
+            .borrow_mut()
+            .add_error(PError::MissingSlideAngleDestinationKey, (loc, loc).into());
+    }
 
     Ok((
         s,
@@ -411,7 +417,7 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::tests::{test_parser_err, test_parser_ok};
+    use super::super::tests::{test_parser_err, test_parser_ok, test_parser_warn};
     use super::*;
 
     #[test]
@@ -520,6 +526,19 @@ mod tests {
         test_parser_err(t_slide_dur, "[3.0#4:1##160.0]");
         test_parser_err(t_slide_dur, "[4:1#3.0##160.0]");
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_t_slide_angle_missing_destination() -> Result<(), Box<dyn std::error::Error>> {
+        // V with only one key: interim=5 parsed but no destination key
+        // should produce both MissingSlideAngleDestination warning and MissingSlideDestinationKey error
+        let state = std::cell::RefCell::new(crate::State::default());
+        let s = NomSpan::new_extra("1V5-8[1:1],", &state);
+        let _ = t_slide(s).unwrap();
+        let state = state.into_inner();
+        assert!(state.has_errors());
+        assert!(state.errors.iter().any(|w| matches!(**w, crate::diag::PError::MissingSlideAngleDestinationKey)));
         Ok(())
     }
 }
