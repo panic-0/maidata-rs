@@ -20,8 +20,8 @@ pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
     let span: Span = (start_loc, end_loc).into();
     for x in &modifier_str {
         match *x.fragment() {
-            "b" => set_flag_or_warn(&s.extra, &mut modifier.is_break, 'b', NoteType::Tap, span),
-            "x" => set_flag_or_warn(&s.extra, &mut modifier.is_ex, 'x', NoteType::Tap, span),
+            "b" => set_flag_or_warn(s.extra, &mut modifier.is_break, 'b', NoteType::Tap, span),
+            "x" => set_flag_or_warn(s.extra, &mut modifier.is_ex, 'x', NoteType::Tap, span),
             _ => (),
         }
         let shape = match *x.fragment() {

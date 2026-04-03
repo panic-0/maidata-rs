@@ -203,7 +203,7 @@ pub fn t_slide_track_modifier(
     let span: Span = (start_loc, end_loc).into();
     for x in &variants {
         match *x {
-            'b' => set_flag_or_warn(&s.extra, &mut modifier.is_break, 'b', NoteType::Slide, span),
+            'b' => set_flag_or_warn(s.extra, &mut modifier.is_break, 'b', NoteType::Slide, span),
             _ => unreachable!(),
         }
     }
@@ -341,9 +341,9 @@ fn parse_slide_head_modifier(
     let mut is_sudden = false;
     for x in modifier_str {
         match *x.fragment() {
-            "b" => set_flag_or_warn(&s.extra, &mut tap_modifier.is_break, 'b', NoteType::Slide, span),
-            "x" => set_flag_or_warn(&s.extra, &mut tap_modifier.is_ex, 'x', NoteType::Slide, span),
-            "!" => set_flag_or_warn(&s.extra, &mut is_sudden, '!', NoteType::Slide, span),
+            "b" => set_flag_or_warn(s.extra, &mut tap_modifier.is_break, 'b', NoteType::Slide, span),
+            "x" => set_flag_or_warn(s.extra, &mut tap_modifier.is_ex, 'x', NoteType::Slide, span),
+            "!" => set_flag_or_warn(s.extra, &mut is_sudden, '!', NoteType::Slide, span),
             _ => (),
         }
         let shape = match *x.fragment() {

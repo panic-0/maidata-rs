@@ -14,7 +14,7 @@ pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
     let (s, _) = multispace0(s)?;
     let (s, insns) = ws_list0(parse_one_maidata_insn)(s)?;
 
-    Ok((s, insns.into_iter().filter_map(|x| x).collect()))
+    Ok((s, insns.into_iter().flatten().collect()))
 }
 
 fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
@@ -29,7 +29,6 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
         t_bundle,
         t_end_mark,
         map(t_comment, |_| None),
-        // TODO: handle unknown characters
         t_unknown_char,
     ))(s)
 }
@@ -196,7 +195,7 @@ mod tests {
         let state = std::cell::RefCell::new(crate::State::default());
         let s = NomSpan::new_extra(start, &state);
         let result = parser(s);
-        // TODO: split
+        // NOTE: returns error state for both parse failures and semantic errors
         assert!(result.is_err() || state.borrow().has_errors());
         state.into_inner()
     }

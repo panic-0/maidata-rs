@@ -25,7 +25,7 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let span: Span = (start_loc, end_loc).into();
     for x in pre_mods.iter().chain(&post_mods) {
         match *x {
-            'f' => set_flag_or_warn(&s.extra, &mut modifier.is_firework, 'f', NoteType::TouchHold, span),
+            'f' => set_flag_or_warn(s.extra, &mut modifier.is_firework, 'f', NoteType::TouchHold, span),
             _ => unreachable!(),
         }
     }

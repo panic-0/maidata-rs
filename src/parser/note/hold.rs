@@ -25,8 +25,8 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let span: Span = (start_loc, end_loc).into();
     for x in pre_mods.iter().chain(&post_mods) {
         match *x {
-            'b' => set_flag_or_warn(&s.extra, &mut modifier.is_break, 'b', NoteType::Hold, span),
-            'x' => set_flag_or_warn(&s.extra, &mut modifier.is_ex, 'x', NoteType::Hold, span),
+            'b' => set_flag_or_warn(s.extra, &mut modifier.is_break, 'b', NoteType::Hold, span),
+            'x' => set_flag_or_warn(s.extra, &mut modifier.is_ex, 'x', NoteType::Hold, span),
             _ => unreachable!(),
         }
     }
