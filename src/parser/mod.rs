@@ -1,16 +1,13 @@
 mod note;
 mod position;
-mod span;
-mod state;
 mod utils;
 
+use crate::diag::*;
 use crate::insn::*;
-use crate::Span;
+use crate::span::{NomSpan, PResult, WithSpan, Span};
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_tap_multi_simplified};
 use position::*;
-use span::*;
-use state::*;
 use utils::*;
 
 pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
