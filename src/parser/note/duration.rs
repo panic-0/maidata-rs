@@ -13,9 +13,27 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
         return Ok((s, None));
     }
 
-    // TODO: handle conversion errors
-    let divisor = divisor_str.fragment().parse().unwrap();
-    let num = num_str.unwrap().fragment().parse().unwrap();
+    let divisor: u32 = match divisor_str.fragment().parse() {
+        Ok(d) => d,
+        Err(_) => {
+            s.extra.borrow_mut().add_error(
+                PError::InvalidBeatDivisor(divisor_str.fragment().to_string()),
+                (start_loc, end_loc).into(),
+            );
+            return Ok((s, None));
+        }
+    };
+    let num_str = num_str.unwrap();
+    let num: u32 = match num_str.fragment().parse() {
+        Ok(n) => n,
+        Err(_) => {
+            s.extra.borrow_mut().add_error(
+                PError::InvalidBeatDivisor(num_str.fragment().to_string()),
+                (start_loc, end_loc).into(),
+            );
+            return Ok((s, None));
+        }
+    };
 
     if divisor == 0 {
         s.extra.borrow_mut().add_error(
@@ -121,6 +139,9 @@ mod tests {
         test_parser_err(t_dur, " [4:3]");
         test_parser_err(t_dur, "[4.5:2]");
         test_parser_err(t_dur, "[4:2.5]");
+        // oversized integers should not panic, should report error
+        test_parser_err(t_dur, "[99999999999999999999:1]");
+        test_parser_err(t_dur, "[1:99999999999999999999]");
 
         assert_eq!(
             test_parser_ok(t_dur, "[#2.5]", " ,").unwrap(),
