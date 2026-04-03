@@ -7,7 +7,7 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, divisor_str) = digit1(s)?;
     let (s, _) = ws(char(':'))(s)?;
-    let (s, num_str) = ws(digit1).expect(PError::MissingBeatsNum)(s)?;
+    let (s, num_str) = ws(digit1).expect(PError::MissingBeatCount)(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
     if num_str.is_none() {
         return Ok((s, None));

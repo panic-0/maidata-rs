@@ -258,7 +258,7 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
                 let result: Option<SlideDuration> = acc + *dur;
                 if result.is_none() {
                     s.extra.borrow_mut().add_error(
-                        PError::DurationMismatch(NoteType::Slide),
+                        PError::IncompatibleDurations(NoteType::Slide),
                         (start_loc, end_loc).into(),
                     );
                     // TODO

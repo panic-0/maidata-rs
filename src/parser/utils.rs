@@ -144,9 +144,9 @@ where
         if open.is_none() {
             let (_, end_loc) = nom_locate::position(i)?;
             i3.extra.borrow_mut().add_error(
-                PError::ExpectedBefore {
-                    expected: format!("`{start}`"),
-                    location: inner_name.to_string(),
+                PError::MissingBefore {
+                    token: format!("`{start}`"),
+                    context: inner_name.to_string(),
                 },
                 (end_loc, end_loc).into(),
             );
@@ -154,10 +154,10 @@ where
         if result.is_none() {
             let (_, end_loc) = nom_locate::position(i1)?;
             i3.extra.borrow_mut().add_error(
-                PError::ExpectedBetween {
-                    expected: inner_name.to_string(),
-                    previous: format!("`{start}`"),
-                    next: format!("`{end}`"),
+                PError::MissingBetween {
+                    token: inner_name.to_string(),
+                    open: format!("`{start}`"),
+                    close: format!("`{end}`"),
                 },
                 (end_loc, end_loc).into(),
             );
@@ -165,9 +165,9 @@ where
         if close.is_none() {
             let (_, end_loc) = nom_locate::position(i2)?;
             i3.extra.borrow_mut().add_error(
-                PError::ExpectedAfter {
-                    expected: format!("`{end}`"),
-                    location: inner_name.to_string(),
+                PError::MissingAfter {
+                    token: format!("`{end}`"),
+                    context: inner_name.to_string(),
                 },
                 (end_loc, end_loc).into(),
             );

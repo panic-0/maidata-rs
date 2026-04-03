@@ -31,25 +31,21 @@ impl std::fmt::Display for PWarning {
 pub enum PError {
     UnknownChar(char),
 
-    // TODO: rename
-    ExpectedBefore {
-        expected: String,
-        location: String,
+    MissingBefore {
+        token: String,
+        context: String,
     },
-    // TODO: rename
-    ExpectedAfter {
-        expected: String,
-        location: String,
+    MissingAfter {
+        token: String,
+        context: String,
     },
-    // TODO: rename
-    ExpectedBetween {
-        expected: String,
-        previous: String,
-        next: String,
+    MissingBetween {
+        token: String,
+        open: String,
+        close: String,
     },
 
-    // TODO: rename
-    MissingBeatsNum, // [divisor:num]
+    MissingBeatCount, // [divisor:num]
     MissingDuration(NoteType),
     MissingNote,
     MissingSlideStartKey,
@@ -63,8 +59,7 @@ pub enum PError {
     InvalidSlideTrack(String),
 
     DuplicateShapeModifier(NoteType),
-    // TODO: rename
-    DurationMismatch(NoteType), // [4:1] + [#2.0]
+    IncompatibleDurations(NoteType),
 }
 
 impl std::fmt::Display for PError {
@@ -72,25 +67,25 @@ impl std::fmt::Display for PError {
         match self {
             PError::UnknownChar(c) => write!(f, "unknown character `{c}`"),
 
-            PError::ExpectedBefore {
-                expected,
-                location: after,
+            PError::MissingBefore {
+                token,
+                context,
             } => {
-                write!(f, "expected {expected} before {after}")
+                write!(f, "missing {token} before {context}")
             }
-            PError::ExpectedAfter {
-                expected,
-                location: before,
+            PError::MissingAfter {
+                token,
+                context,
             } => {
-                write!(f, "expected {expected} after {before}")
+                write!(f, "missing {token} after {context}")
             }
-            PError::ExpectedBetween {
-                expected,
-                previous: before,
-                next: after,
-            } => write!(f, "expected {expected} between {before} and {after}"),
+            PError::MissingBetween {
+                token,
+                open,
+                close,
+            } => write!(f, "missing {token} between {open} and {close}"),
 
-            PError::MissingBeatsNum => write!(f, "missing number of beats"),
+            PError::MissingBeatCount => write!(f, "missing beat count"),
             PError::MissingDuration(t) => write!(f, "missing {t} duration"),
             PError::MissingNote => write!(f, "missing note"),
             PError::MissingSlideStartKey => write!(f, "missing slide start key"),
@@ -108,7 +103,7 @@ impl std::fmt::Display for PError {
             PError::DuplicateShapeModifier(t) => {
                 write!(f, "duplicate {t} shape modifier")
             }
-            PError::DurationMismatch(t) => write!(f, "{t} duration mismatch"),
+            PError::IncompatibleDurations(t) => write!(f, "incompatible {t} durations"),
         }
     }
 }
