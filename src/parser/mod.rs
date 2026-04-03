@@ -14,7 +14,7 @@ pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
     let (s, _) = multispace0(s)?;
     let (s, insns) = ws_list0(parse_one_maidata_insn)(s)?;
 
-    Ok((s, insns.into_iter().flatten().collect()))
+    Ok((s, insns.into_iter().filter_map(|x| x).collect()))
 }
 
 fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
