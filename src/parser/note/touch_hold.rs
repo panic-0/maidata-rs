@@ -5,29 +5,24 @@ pub fn t_touch_hold_modifier_str(s: NomSpan) -> PResult<Vec<char>> {
     use nom::character::complete::one_of;
     use nom::multi::many0;
 
-    let (s1, variants) = many0(ws(one_of("f")))(s)?;
+    let (s, variants) = many0(ws(one_of("f")))(s)?;
 
-    Ok((if variants.is_empty() { s } else { s1 }, variants))
+    Ok((s, variants))
 }
 
 pub fn t_touch_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     use nom::character::complete::char;
-    use nom::combinator::map;
 
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, sensor) = t_touch_sensor(s)?;
-    let (s, modifier_str) = t_touch_hold_modifier_str(s)?;
+    let (s, pre_mods) = t_touch_hold_modifier_str(s)?;
     let (s, _) = ws(char('h'))(s)?;
-    let (s, modifier_str) = map(t_touch_hold_modifier_str, |mut m| {
-        // TODO
-        m.extend(modifier_str.clone());
-        m
-    })(s)?;
+    let (s, post_mods) = t_touch_hold_modifier_str(s)?;
     let (s, dur) = ws(t_dur).expect(PError::MissingDuration(NoteType::TouchHold))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = TouchHoldModifier::default();
-    for x in &modifier_str {
+    for x in pre_mods.iter().chain(&post_mods) {
         match *x {
             'f' => {
                 if modifier.is_firework {
@@ -54,4 +49,61 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             .with_span(span)
         }),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::{test_parser_err, test_parser_ok, test_parser_warn};
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn test_t_touch_hold() -> Result<(), Box<dyn Error>> {
+        assert_eq!(
+            *test_parser_ok(t_touch_hold, "C1h[1:1]", "").unwrap(),
+            RawNoteInsn::TouchHold(TouchHoldParams {
+                sensor: ('C', None).try_into().unwrap(),
+                dur: Duration::NumBeats(NumBeatsParams {
+                    bpm: None,
+                    divisor: 1,
+                    num: 1
+                }),
+                modifier: TouchHoldModifier::default(),
+            })
+        );
+        // modifier before h
+        assert_eq!(
+            *test_parser_ok(t_touch_hold, "C1fh[1:1]", "").unwrap(),
+            RawNoteInsn::TouchHold(TouchHoldParams {
+                sensor: ('C', None).try_into().unwrap(),
+                dur: Duration::NumBeats(NumBeatsParams {
+                    bpm: None,
+                    divisor: 1,
+                    num: 1
+                }),
+                modifier: TouchHoldModifier { is_firework: true },
+            })
+        );
+        // modifier after h
+        assert_eq!(
+            *test_parser_ok(t_touch_hold, "C1hf[1:1]", "").unwrap(),
+            RawNoteInsn::TouchHold(TouchHoldParams {
+                sensor: ('C', None).try_into().unwrap(),
+                dur: Duration::NumBeats(NumBeatsParams {
+                    bpm: None,
+                    divisor: 1,
+                    num: 1
+                }),
+                modifier: TouchHoldModifier { is_firework: true },
+            })
+        );
+        // modifier on both sides (f before and after h -> duplicate warning)
+        test_parser_warn(t_touch_hold, "C1f hf[1:1],");
+        // duplicate modifier warning
+        test_parser_warn(t_touch_hold, "C1ffh[1:1],");
+        test_parser_warn(t_touch_hold, "C1hff[1:1],");
+        // missing duration
+        test_parser_err(t_touch_hold, "C1h");
+        Ok(())
+    }
 }
