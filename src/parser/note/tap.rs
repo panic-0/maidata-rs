@@ -5,9 +5,9 @@ pub fn t_tap_modifier_str(s: NomSpan) -> PResult<Vec<NomSpan>> {
     use nom::bytes::complete::tag;
     use nom::multi::many0;
 
-    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("$$"), tag("$")))))(s)?;
+    let (s, variants) = many0(ws(alt((tag("b"), tag("x"), tag("$$"), tag("$")))))(s)?;
 
-    Ok((if variants.is_empty() { s } else { s1 }, variants))
+    Ok((s, variants))
 }
 
 pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {

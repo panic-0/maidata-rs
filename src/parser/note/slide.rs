@@ -191,14 +191,14 @@ pub fn t_slide_track_modifier(
     use nom::character::complete::one_of;
     use nom::multi::many0;
 
-    let (s1, start_loc) = nom_locate::position(s)?;
-    let (s1, variants) = many0(ws(one_of("b")))(s1)?;
-    let (s1, end_loc) = nom_locate::position(s1)?;
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, variants) = many0(ws(one_of("b")))(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
     for x in &variants {
         match *x {
             'b' => {
                 if modifier.is_break {
-                    s1.extra.borrow_mut().add_warning(
+                    s.extra.borrow_mut().add_warning(
                         PWarning::DuplicateModifier('b', NoteType::Slide),
                         (start_loc, end_loc).into(),
                     );
@@ -209,7 +209,7 @@ pub fn t_slide_track_modifier(
         }
     }
 
-    Ok((if variants.is_empty() { s } else { s1 }, modifier))
+    Ok((s, modifier))
 }
 
 // TODO: refactor
@@ -323,9 +323,9 @@ pub fn t_slide_head_modifier_str(s: NomSpan) -> PResult<Vec<NomSpan>> {
     use nom::bytes::complete::tag;
     use nom::multi::many0;
 
-    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("@"), tag("?"), tag("!")))))(s)?;
+    let (s, variants) = many0(ws(alt((tag("b"), tag("x"), tag("@"), tag("?"), tag("!")))))(s)?;
 
-    Ok((if variants.is_empty() { s } else { s1 }, variants))
+    Ok((s, variants))
 }
 
 pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {

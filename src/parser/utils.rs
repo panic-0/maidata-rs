@@ -160,3 +160,44 @@ where
         Ok((i3, result))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verify that many0(ws(x)) returns the ORIGINAL input (including leading spaces)
+    /// when there are 0 matches. This is critical — the old code had an explicit
+    /// `if variants.is_empty() { s } else { s1 }` guard that would be needed
+    /// if many0 consumed leading whitespace even on 0 matches.
+    #[test]
+    fn many0_ws_preserves_input_on_zero_matches() {
+        use nom::bytes::complete::tag;
+
+        let state = std::cell::RefCell::new(crate::State::default());
+
+        // Case 1: input has leading spaces, no "b" follows
+        let input = "  rest";
+        let s = NomSpan::new_extra(input, &state);
+        let (rem, vars) = nom::multi::many0(ws(tag("b")))(s).unwrap();
+        assert!(vars.is_empty(), "expected 0 matches, got {:?}", vars);
+        assert_eq!(
+            *rem.fragment(),
+            "  rest",
+            "many0(ws(tag(..))) should NOT consume leading whitespace on 0 matches"
+        );
+
+        // Case 2: input has no leading spaces, no "b" follows
+        let input2 = "rest";
+        let s2 = NomSpan::new_extra(input2, &state);
+        let (rem2, vars2) = nom::multi::many0(ws(tag("b")))(s2).unwrap();
+        assert!(vars2.is_empty());
+        assert_eq!(*rem2.fragment(), "rest");
+
+        // Case 3: input has one "b" with leading space — should consume the space+b
+        let input3 = " b rest";
+        let s3 = NomSpan::new_extra(input3, &state);
+        let (rem3, vars3) = nom::multi::many0(ws(tag("b")))(s3).unwrap();
+        assert_eq!(vars3.len(), 1);
+        assert_eq!(*rem3.fragment(), " rest");
+    }
+}

@@ -4,9 +4,9 @@ pub fn t_touch_modifier_str(s: NomSpan) -> PResult<Vec<char>> {
     use nom::character::complete::one_of;
     use nom::multi::many0;
 
-    let (s1, variants) = many0(ws(one_of("f")))(s)?;
+    let (s, variants) = many0(ws(one_of("f")))(s)?;
 
-    Ok((if variants.is_empty() { s } else { s1 }, variants))
+    Ok((s, variants))
 }
 
 pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
