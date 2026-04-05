@@ -34,6 +34,30 @@ fn test_sensor_layout_d1_top() {
 }
 
 #[test]
+fn test_sensor_index_matches_export_contract() {
+    let ordered = [
+        TouchSensor::new('A', Some(0)).unwrap(),
+        TouchSensor::new('A', Some(7)).unwrap(),
+        TouchSensor::new('B', Some(0)).unwrap(),
+        TouchSensor::new('B', Some(7)).unwrap(),
+        TouchSensor::new('C', None).unwrap(),
+        TouchSensor::new('D', Some(0)).unwrap(),
+        TouchSensor::new('D', Some(7)).unwrap(),
+        TouchSensor::new('E', Some(0)).unwrap(),
+        TouchSensor::new('E', Some(7)).unwrap(),
+    ];
+    let expected = [0, 7, 8, 15, 16, 17, 24, 25, 32];
+
+    for (sensor, expected_index) in ordered.iter().zip(expected) {
+        assert_eq!(
+            sensor_index(sensor),
+            expected_index,
+            "sensor {sensor} should map to export index {expected_index}"
+        );
+    }
+}
+
+#[test]
 fn test_encode_single_tap() {
     let encoder = HeatmapEncoder::new();
     let notes = vec![Note::Tap(MaterializedTap {

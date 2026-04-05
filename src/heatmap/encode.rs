@@ -26,6 +26,9 @@ pub const CH_SLIDE: usize = 3;
 pub const CH_BREAK: usize = 4;
 
 /// Encoder: converts materialized notes into `[T, 33, 5]` sensor-channel values (f32).
+///
+/// The 33-sensor axis uses the same order as `sensor_index()` and the Python
+/// training-side `_PIXEL_POSITIONS`: A1..A8, B1..B8, C, D1..D8, E1..E8.
 pub struct HeatmapEncoder {
     frame_dt: f64,
 }
@@ -93,16 +96,18 @@ impl HeatmapEncoder {
         let f1 = time_to_frame_ceil(hold.ts + hold.dur, self.frame_dt);
         let f1 = f1.min(frames.dim().0);
         let si = hold.key.index() as usize;
+        // Hold head = tap
+        if f0 < frames.dim().0 {
+            frames[[f0, si, CH_TAP_INSTANT]] += 1.0;
+        }
+        // Hold body coverage
         for fi in f0..f1 {
             let overlap = frame_overlap(hold.ts, hold.ts + hold.dur, fi, self.frame_dt);
             let coverage = (overlap / self.frame_dt) as f32;
             frames[[fi, si, CH_HOLD]] += coverage;
         }
-        if hold.is_break {
-            let fi = time_to_frame(hold.ts, self.frame_dt);
-            if fi < frames.dim().0 {
-                frames[[fi, si, CH_BREAK]] += 1.0;
-            }
+        if hold.is_break && f0 < frames.dim().0 {
+            frames[[f0, si, CH_BREAK]] += 1.0;
         }
     }
 

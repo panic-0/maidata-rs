@@ -7,7 +7,11 @@ pub struct Position {
     pub y: f64,
 }
 
-/// Global index for a TouchSensor: 0-7=A, 8-15=B, 16=C, 17-24=D, 25-32=E.
+/// Global export index for a TouchSensor.
+///
+/// This ordering is the contract for exported `[T, 33, C]` tensors and must stay
+/// aligned with Python-side `training/model.py::_PIXEL_POSITIONS`:
+/// A1..A8, B1..B8, C, D1..D8, E1..E8.
 pub fn sensor_index(sensor: &TouchSensor) -> u8 {
     match (sensor.group(), sensor.index()) {
         ('A', Some(i)) => i,

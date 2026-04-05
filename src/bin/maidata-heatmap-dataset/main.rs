@@ -1,5 +1,9 @@
 use maidata::heatmap::{HeatmapEncoder, NUM_CHANNELS, NUM_SENSORS};
-use maidata::materialize::MaterializationContext;
+use maidata::materialize::{
+    MaterializedHold, MaterializedSlideSegment, MaterializedSlideTrack, MaterializedTap,
+    MaterializedTouch, MaterializedTouchHold, MaterializationContext, Note,
+};
+use maidata::transform::transform::{Transformable, Transformer};
 use ndarray::Array3;
 use ndarray_npy::write_npy;
 use serde::{Deserialize, Serialize};
@@ -7,16 +11,98 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+const MIRROR: Transformer = Transformer {
+    rotation: 0,
+    flip: true,
+};
+
+fn mirror_notes(notes: &[Note]) -> Vec<Note> {
+    notes
+        .iter()
+        .map(|note| match note {
+            Note::Bpm(b) => Note::Bpm(*b),
+            Note::Tap(p) => Note::Tap(MaterializedTap {
+                key: p.key.transform(MIRROR),
+                ..*p
+            }),
+            Note::Touch(p) => Note::Touch(MaterializedTouch {
+                sensor: p.sensor.transform(MIRROR),
+                ..*p
+            }),
+            Note::Hold(p) => Note::Hold(MaterializedHold {
+                key: p.key.transform(MIRROR),
+                ..*p
+            }),
+            Note::TouchHold(p) => Note::TouchHold(MaterializedTouchHold {
+                sensor: p.sensor.transform(MIRROR),
+                ..*p
+            }),
+            Note::SlideTrack(p) => Note::SlideTrack(MaterializedSlideTrack {
+                start_tap: p.start_tap.map(|t| MaterializedTap {
+                    key: t.key.transform(MIRROR),
+                    ..t
+                }),
+                segments: p
+                    .segments
+                    .iter()
+                    .map(|s| MaterializedSlideSegment {
+                        start: s.start.transform(MIRROR),
+                        destination: s.destination.transform(MIRROR),
+                        shape: maidata::transform::NormalizedSlideSegment::new(
+                            s.shape,
+                            maidata::transform::NormalizedSlideSegmentParams {
+                                start: s.start,
+                                destination: s.destination,
+                            },
+                        )
+                        .transform(MIRROR)
+                        .shape(),
+                    })
+                    .collect(),
+                ..p.clone()
+            }),
+        })
+        .collect()
+}
+
+fn mirror_song_id(song_id: &str, offset: u64) -> String {
+    let numeric: String = song_id.split('_').next().unwrap_or(song_id).to_string();
+    let rest = &song_id[numeric.len()..];
+    if let Ok(id) = numeric.parse::<u64>() {
+        format!("{}{}", id + offset, rest)
+    } else {
+        format!("{offset}_{song_id}")
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    if !(3..=4).contains(&args.len()) {
-        eprintln!("usage: {} <chart_root> <output_dir> [limit]", args[0]);
+    let mut chart_root = "";
+    let mut output_dir = "";
+    let mut limit: Option<usize> = None;
+    let mut mirror_offset: Option<u64> = None;
+
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--mirror" => mirror_offset = Some(args.get(i + 1).and_then(|s| s.parse().ok()).unwrap_or(10_000_000)),
+            _ if chart_root.is_empty() => chart_root = &args[i],
+            _ if output_dir.is_empty() => output_dir = &args[i],
+            _ => limit = Some(args[i].parse()?),
+        }
+        i += 1;
+    }
+
+    // --mirror with explicit offset: already parsed above
+
+    if chart_root.is_empty() || output_dir.is_empty() {
+        eprintln!("usage: {} [--mirror [offset]] <chart_root> <output_dir> [limit]", args[0]);
+        eprintln!("  --mirror [offset]  append mirrored charts (default offset: 10000000)");
         std::process::exit(1);
     }
-    let chart_root = &args[1];
-    let output_dir = &args[2];
-    let limit: Option<usize> = args.get(3).map(|s| s.parse()).transpose()?;
     std::fs::create_dir_all(output_dir)?;
+
+    let mirror_offset = mirror_offset.unwrap_or(0);
 
     eprintln!("Fetching chart constants from diving-fish...");
     let label_map = fetch_labels()?;
@@ -55,9 +141,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for diff_view in maidata.iter_difficulties() {
             let diff = diff_view.difficulty();
             let cc = label_map
-                .get(&song_id)
+                .get(&numeric_id)
                 .and_then(|m| m.get(&(diff as u8)))
                 .copied();
+
+            // Skip charts below level 10
+            let min_level: u8 = match diff_view.level() {
+                Some(maidata::Level::Normal(lv)) | Some(maidata::Level::Plus(lv)) => lv,
+                _ => 0,
+            };
+            if min_level < 10 {
+                continue;
+            }
 
             let offset = diff_view.offset().unwrap_or(0.0);
 
@@ -90,7 +185,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 file: filename,
                 total_frames,
                 frame_dt: encoder.frame_dt(),
-                frame_offsets,
+                frame_offsets: frame_offsets.clone(),
             });
 
             eprintln!(
@@ -98,6 +193,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 song_id,
                 maidata.title(),
             );
+
+            // Mirror augmentation
+            if mirror_offset > 0 {
+                let mirrored_notes = mirror_notes(&notes);
+                let mirrored_frames = encoder.encode(&mirrored_notes);
+                let (mirrored_u8, _) = compact_frames(&mirrored_frames);
+                let mirrored_total = mirrored_frames.dim().0;
+                let n_m = mirrored_u8.dim().0;
+                if n_m == 0 {
+                    continue;
+                }
+                let mirror_id = mirror_song_id(&song_id, mirror_offset);
+                let mirror_file = format!("{}_{}.npy", mirror_id, diff_discriminant(diff));
+                let mirror_path = PathBuf::from(output_dir).join(&mirror_file);
+                write_npy(&mirror_path, &mirrored_u8)?;
+
+                manifest.push(ManifestEntry {
+                    song_id: mirror_id,
+                    difficulty: format!("{diff:?}"),
+                    chart_constant: cc,
+                    file: mirror_file,
+                    total_frames: mirrored_total,
+                    frame_dt: encoder.frame_dt(),
+                    frame_offsets: frame_offsets.clone(),
+                });
+            }
         }
 
         songs_processed += 1;
@@ -216,4 +337,79 @@ struct ManifestEntry {
     total_frames: usize,
     frame_dt: f64,
     frame_offsets: Vec<u32>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use maidata::heatmap::encode::*;
+    use maidata::insn::{Key, TouchSensor};
+    use maidata::materialize::MaterializedTapShape;
+
+    #[test]
+    fn test_mirror_touch_sensor_e1_e2() {
+        let e1 = TouchSensor::new('E', Some(0)).unwrap();
+        let e2 = TouchSensor::new('E', Some(1)).unwrap();
+        let e8 = TouchSensor::new('E', Some(7)).unwrap();
+        assert_eq!(e1.transform(MIRROR), e1, "E1 mirror should be E1");
+        assert_eq!(e2.transform(MIRROR), e8, "E2 mirror should be E8");
+    }
+
+    #[test]
+    fn test_mirror_tap_sensor_index() {
+        // Tap on key 0 (A1, sensor 0) should mirror to key 7 (A8, sensor 7)
+        let encoder = HeatmapEncoder::new();
+        let notes = vec![Note::Tap(MaterializedTap {
+            ts: 0.0,
+            key: Key::new(0).unwrap(),
+            shape: MaterializedTapShape::Ring,
+            is_break: false,
+            is_ex: false,
+            is_each: false,
+        })];
+        let original = encoder.encode(&notes);
+        let mirrored = encoder.encode(&mirror_notes(&notes));
+
+        // Original: sensor 0 has tap; mirrored: sensor 7 has tap
+        assert!(original[[0, 0, CH_TAP_INSTANT]] > 0.0);
+        assert_eq!(original[[0, 7, CH_TAP_INSTANT]], 0.0);
+        assert!(mirrored[[0, 7, CH_TAP_INSTANT]] > 0.0);
+        assert_eq!(mirrored[[0, 0, CH_TAP_INSTANT]], 0.0);
+    }
+
+    #[test]
+    fn test_mirror_touch_sensor_index() {
+        // Touch on E2 (sensor 26) should mirror to E8 (sensor 32)
+        let encoder = HeatmapEncoder::new();
+        let notes = vec![Note::Touch(MaterializedTouch {
+            ts: 0.0,
+            sensor: TouchSensor::new('E', Some(1)).unwrap(),
+            is_each: false,
+        })];
+        let original = encoder.encode(&notes);
+        let mirrored = encoder.encode(&mirror_notes(&notes));
+
+        assert!(original[[0, 26, CH_TOUCH_INSTANT]] > 0.0);
+        assert!(mirrored[[0, 32, CH_TOUCH_INSTANT]] > 0.0);
+    }
+
+    #[test]
+    fn test_mirror_hold_includes_tap_head() {
+        // Hold on key 0 should mirror to key 7, both tap head and hold body
+        let encoder = HeatmapEncoder::new();
+        let notes = vec![Note::Hold(MaterializedHold {
+            ts: 0.0,
+            dur: 0.3,
+            key: Key::new(0).unwrap(),
+            is_break: false,
+            is_ex: false,
+            is_each: false,
+        })];
+        let mirrored = encoder.encode(&mirror_notes(&notes));
+
+        // Mirrored hold head (tap) on sensor 7
+        assert!(mirrored[[0, 7, CH_TAP_INSTANT]] > 0.0, "mirrored hold head");
+        // Mirrored hold body on sensor 7
+        assert!(mirrored[[0, 7, CH_HOLD]] > 0.0, "mirrored hold body");
+    }
 }
