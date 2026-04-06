@@ -218,7 +218,7 @@ fn expand_slide_path(track: &MaterializedSlideTrack) -> Option<Vec<(TouchSensor,
     let mut cum = 0.0;
 
     for hit_area in slide_data.deref() {
-        let d = hit_area.push_distance + hit_area.release_distance;
+        let d = hit_area.push_distance;
         let frac0 = cum / total_dist;
         let frac1 = (cum + d) / total_dist;
         let t0 = track.start_ts + frac0 * track.dur;
@@ -226,7 +226,7 @@ fn expand_slide_path(track: &MaterializedSlideTrack) -> Option<Vec<(TouchSensor,
         for sensor in &hit_area.hit_points {
             events.push((*sensor, t0, t1));
         }
-        cum += d;
+        cum += d + hit_area.release_distance;
     }
     Some(events)
 }
@@ -255,7 +255,7 @@ fn expand_fan_slide(track: &MaterializedSlideTrack) -> Option<Vec<(TouchSensor, 
         }
         let mut cum = 0.0;
         for hit_area in slide_data.deref() {
-            let d = hit_area.push_distance + hit_area.release_distance;
+            let d = hit_area.push_distance;
             let frac0 = cum / total_dist;
             let frac1 = (cum + d) / total_dist;
             let t0 = track.start_ts + frac0 * track.dur;
@@ -263,7 +263,7 @@ fn expand_fan_slide(track: &MaterializedSlideTrack) -> Option<Vec<(TouchSensor, 
             for sensor in &hit_area.hit_points {
                 events.push((*sensor, t0, t1));
             }
-            cum += d;
+            cum += d + hit_area.release_distance;
         }
     }
     Some(events)
