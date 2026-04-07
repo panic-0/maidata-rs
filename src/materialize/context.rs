@@ -197,10 +197,9 @@ fn materialize_slide(
     if p.tracks.is_empty() {
         return vec![Note::Tap(start_tap.unwrap())];
     }
-
-    // TODO
-    iter::once(Note::Tap(start_tap.unwrap()))
-        .chain(p.tracks.iter().map(|track| {
+    p.tracks
+        .iter()
+        .map(|track| {
             Note::SlideTrack(materialize_slide_track(
                 ts,
                 beat_dur,
@@ -209,7 +208,7 @@ fn materialize_slide(
                 track,
                 is_slide_each,
             ))
-        }))
+        })
         .collect()
 }
 
