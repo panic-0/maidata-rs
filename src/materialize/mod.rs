@@ -71,13 +71,12 @@ pub struct MaterializedTouchHold {
     pub is_each: bool,
 }
 
+// NOTE: the start tap of a slide is materialized as a separate tap note.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MaterializedSlideTrack {
     pub ts: TimestampInSeconds,
     pub start_ts: TimestampInSeconds,
     pub dur: DurationInSeconds,
-    // NOTE: start_tap is a note, handle it separately when processing the track
-    pub start_tap: Option<MaterializedTap>,
     pub segments: Vec<MaterializedSlideSegment>,
     pub is_break: bool,
     pub is_sudden: bool,

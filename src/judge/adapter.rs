@@ -246,7 +246,6 @@ mod tests {
             ts: 0.0,
             start_ts: 0.5,
             dur: 1.0,
-            start_tap: None,
             segments: vec![MaterializedSlideSegment {
                 start: key(0),
                 destination: key(4),
@@ -274,7 +273,6 @@ mod tests {
             ts: 0.0,
             start_ts: 0.5,
             dur: 1.0,
-            start_tap: None,
             segments: vec![MaterializedSlideSegment {
                 start: key(0),
                 destination: key(4),
@@ -299,7 +297,6 @@ mod tests {
             ts: 0.0,
             start_ts: 0.5,
             dur: 1.0,
-            start_tap: None,
             segments: vec![
                 MaterializedSlideSegment {
                     start: key(0),
@@ -325,7 +322,6 @@ mod tests {
             ts: 0.0,
             start_ts: 0.5,
             dur: 1.5,
-            start_tap: None,
             segments: vec![
                 MaterializedSlideSegment {
                     start: key(0),

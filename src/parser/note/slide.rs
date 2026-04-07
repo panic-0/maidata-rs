@@ -417,7 +417,7 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::tests::{test_parser_err, test_parser_ok, test_parser_warn};
+    use super::super::tests::{test_parser_err, test_parser_ok};
     use super::*;
 
     #[test]

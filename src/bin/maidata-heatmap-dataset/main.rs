@@ -38,10 +38,6 @@ fn mirror_notes(notes: &[Note]) -> Vec<Note> {
                 ..*p
             }),
             Note::SlideTrack(p) => Note::SlideTrack(MaterializedSlideTrack {
-                start_tap: p.start_tap.map(|t| MaterializedTap {
-                    key: t.key.transform(MIRROR),
-                    ..t
-                }),
                 segments: p
                     .segments
                     .iter()

@@ -193,22 +193,21 @@ fn materialize_slide(
     is_each: bool,
     is_slide_each: bool,
 ) -> Vec<Note> {
-    let mut start_tap = Some(materialize_tap_params(ts, &p.start, true, is_each));
+    let start_tap = Note::Tap(materialize_tap_params(ts, &p.start, true, is_each));
     if p.tracks.is_empty() {
-        return vec![Note::Tap(start_tap.unwrap())];
+        return vec![start_tap];
     }
-    p.tracks
-        .iter()
-        .map(|track| {
+
+    iter::once(start_tap)
+        .chain(p.tracks.iter().map(|track| {
             Note::SlideTrack(materialize_slide_track(
                 ts,
                 beat_dur,
                 p.start.key,
-                start_tap.take(),
                 track,
                 is_slide_each,
             ))
-        })
+        }))
         .collect()
 }
 
@@ -216,7 +215,6 @@ fn materialize_slide_track(
     ts: f64,
     beat_dur: f64,
     mut start_key: insn::Key,
-    start_tap: Option<MaterializedTap>,
     track: &insn::SlideTrack,
     is_each: bool,
 ) -> MaterializedSlideTrack {
@@ -247,7 +245,6 @@ fn materialize_slide_track(
         ts,
         start_ts,
         dur: materialize_duration(track.dur.slide_duration(), beat_dur),
-        start_tap,
         segments,
         is_break: track.modifier.is_break,
         is_sudden: track.modifier.is_sudden,

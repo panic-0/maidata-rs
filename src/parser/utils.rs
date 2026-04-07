@@ -195,7 +195,7 @@ mod tests {
         let input = "  rest";
         let s = NomSpan::new_extra(input, &state);
         let (rem, vars) = nom::multi::many0(ws(tag("b")))(s).unwrap();
-        assert!(vars.is_empty(), "expected 0 matches, got {:?}", vars);
+        assert!(vars.is_empty(), "expected 0 matches, got {vars:?}");
         assert_eq!(
             *rem.fragment(),
             "  rest",
