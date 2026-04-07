@@ -1,12 +1,12 @@
-use std::vec;
+use std::{iter, vec};
 
 use super::Note;
 use crate::materialize::{
     MaterializedBpm, MaterializedHold, MaterializedSlideSegment, MaterializedSlideTrack,
     MaterializedTap, MaterializedTapShape, MaterializedTouch, MaterializedTouchHold,
 };
-use crate::{insn, transform, Sp};
 use crate::span::WithSpan;
+use crate::{insn, transform, Sp};
 
 pub struct MaterializationContext {
     // TODO: is slides' default stop time really independent of BPM changes?
@@ -72,6 +72,7 @@ impl MaterializationContext {
             insn::RawInsn::Notes(raw_notes) => {
                 let ts = self.advance_time();
                 let is_each = raw_notes.len() > 1;
+                // TODO
                 let is_slide_each = raw_notes.iter().fold(0, |acc, x| {
                     acc + match x.deref() {
                         insn::RawNoteInsn::Slide(params) => params.tracks.len(),
@@ -197,16 +198,19 @@ fn materialize_slide(
         return vec![Note::Tap(start_tap.unwrap())];
     }
 
-    p.tracks.iter().map(|track| {
-        Note::SlideTrack(materialize_slide_track(
-            ts,
-            beat_dur,
-            p.start.key,
-            start_tap.take(),
-            track,
-            is_slide_each,
-        ))
-    }).collect()
+    // TODO
+    iter::once(Note::Tap(start_tap.unwrap()))
+        .chain(p.tracks.iter().map(|track| {
+            Note::SlideTrack(materialize_slide_track(
+                ts,
+                beat_dur,
+                p.start.key,
+                start_tap.take(),
+                track,
+                is_slide_each,
+            ))
+        }))
+        .collect()
 }
 
 fn materialize_slide_track(
@@ -233,7 +237,8 @@ fn materialize_slide_track(
         .iter()
         .map(|segment| {
             // TODO: handle normalization error
-            let normalized = transform::normalize::normalize_slide_segment(start_key, segment).unwrap();
+            let normalized =
+                transform::normalize::normalize_slide_segment(start_key, segment).unwrap();
             start_key = segment.params().destination;
             materialize_slide_segment(normalized)
         })
