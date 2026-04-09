@@ -1,7 +1,7 @@
 use maidata::heatmap::{HeatmapEncoder, NUM_CHANNELS, NUM_SENSORS};
 use maidata::materialize::{
-    MaterializedHold, MaterializedSlideSegment, MaterializedSlideTrack, MaterializedTap,
-    MaterializedTouch, MaterializedTouchHold, MaterializationContext, Note,
+    MaterializationContext, MaterializedHold, MaterializedSlideSegment, MaterializedSlideTrack,
+    MaterializedTap, MaterializedTouch, MaterializedTouchHold, Note,
 };
 use maidata::transform::transform::{Transformable, Transformer};
 use ndarray::Array3;
@@ -81,7 +81,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
-            "--mirror" => mirror_offset = Some(args.get(i + 1).and_then(|s| s.parse().ok()).unwrap_or(10_000_000)),
+            "--mirror" => {
+                mirror_offset = Some(
+                    args.get(i + 1)
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(10_000_000),
+                )
+            }
             _ if chart_root.is_empty() => chart_root = &args[i],
             _ if output_dir.is_empty() => output_dir = &args[i],
             _ => limit = Some(args[i].parse()?),
@@ -92,7 +98,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --mirror with explicit offset: already parsed above
 
     if chart_root.is_empty() || output_dir.is_empty() {
-        eprintln!("usage: {} [--mirror [offset]] <chart_root> <output_dir> [limit]", args[0]);
+        eprintln!(
+            "usage: {} [--mirror [offset]] <chart_root> <output_dir> [limit]",
+            args[0]
+        );
         eprintln!("  --mirror [offset]  append mirrored charts (default offset: 10000000)");
         std::process::exit(1);
     }

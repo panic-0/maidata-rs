@@ -21,7 +21,13 @@ pub struct Hold {
 }
 
 impl Hold {
-    pub fn new(key: crate::insn::Key, appear_time: f64, tail_time: f64, is_break: bool, is_ex: bool) -> Self {
+    pub fn new(
+        key: crate::insn::Key,
+        appear_time: f64,
+        tail_time: f64,
+        is_break: bool,
+        is_ex: bool,
+    ) -> Self {
         Self {
             sensor: key_to_sensor(key),
             appear_time,

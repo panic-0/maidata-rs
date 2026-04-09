@@ -4,7 +4,7 @@ mod utils;
 
 use crate::diag::*;
 use crate::insn::*;
-use crate::span::{NomSpan, PResult, WithSpan, Span};
+use crate::span::{NomSpan, PResult, Span, WithSpan};
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_tap_multi_simplified};
 use position::*;

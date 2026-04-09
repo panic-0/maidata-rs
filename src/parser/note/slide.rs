@@ -341,7 +341,13 @@ fn parse_slide_head_modifier(
     let mut is_sudden = false;
     for x in modifier_str {
         match *x.fragment() {
-            "b" => set_flag_or_warn(s.extra, &mut tap_modifier.is_break, 'b', NoteType::Slide, span),
+            "b" => set_flag_or_warn(
+                s.extra,
+                &mut tap_modifier.is_break,
+                'b',
+                NoteType::Slide,
+                span,
+            ),
             "x" => set_flag_or_warn(s.extra, &mut tap_modifier.is_ex, 'x', NoteType::Slide, span),
             "!" => set_flag_or_warn(s.extra, &mut is_sudden, '!', NoteType::Slide, span),
             _ => (),
@@ -538,7 +544,10 @@ mod tests {
         let _ = t_slide(s).unwrap();
         let state = state.into_inner();
         assert!(state.has_errors());
-        assert!(state.errors.iter().any(|w| matches!(**w, crate::diag::PError::MissingSlideAngleDestinationKey)));
+        assert!(state
+            .errors
+            .iter()
+            .any(|w| matches!(**w, crate::diag::PError::MissingSlideAngleDestinationKey)));
         Ok(())
     }
 }

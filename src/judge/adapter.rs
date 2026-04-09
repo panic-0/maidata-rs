@@ -59,9 +59,8 @@ fn convert_slide(m: MaterializedSlideTrack) -> Result<Slide, &'static str> {
     let tail_segment = normalized_track.segments.last().unwrap();
     let head_is_thunder = head_segment.shape() == NormalizedSlideSegmentShape::ThunderL
         || head_segment.shape() == NormalizedSlideSegmentShape::ThunderR;
-    let mut distance = (tail_segment.params().destination.index() + 8
-        - head_segment.params().start.index())
-        % 8;
+    let mut distance =
+        (tail_segment.params().destination.index() + 8 - head_segment.params().start.index()) % 8;
     if head_segment.shape() == NormalizedSlideSegmentShape::ThunderR {
         distance = (8 - distance) % 8;
     }

@@ -14,7 +14,7 @@ extern crate enum_map;
 
 pub use diag::{PError, PWarning, State};
 pub use maidata_file::{AssociatedBeatmapData, BeatmapData, Maidata};
-pub use span::{Span, Sp, VecSp};
+pub use span::{Sp, Span, VecSp};
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Debug)]
 pub enum Difficulty {

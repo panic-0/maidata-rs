@@ -68,23 +68,15 @@ impl std::fmt::Display for PError {
         match self {
             PError::UnknownChar(c) => write!(f, "unknown character `{c}`"),
 
-            PError::MissingBefore {
-                token,
-                context,
-            } => {
+            PError::MissingBefore { token, context } => {
                 write!(f, "missing {token} before {context}")
             }
-            PError::MissingAfter {
-                token,
-                context,
-            } => {
+            PError::MissingAfter { token, context } => {
                 write!(f, "missing {token} after {context}")
             }
-            PError::MissingBetween {
-                token,
-                open,
-                close,
-            } => write!(f, "missing {token} between {open} and {close}"),
+            PError::MissingBetween { token, open, close } => {
+                write!(f, "missing {token} between {open} and {close}")
+            }
 
             PError::MissingBeatCount => write!(f, "missing beat count"),
             PError::MissingDuration(t) => write!(f, "missing {t} duration"),

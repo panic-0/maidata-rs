@@ -19,7 +19,13 @@ pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
     let span: Span = (start_loc, end_loc).into();
     for x in &modifier_str {
         match *x {
-            'f' => set_flag_or_warn(s.extra, &mut modifier.is_firework, 'f', NoteType::Touch, span),
+            'f' => set_flag_or_warn(
+                s.extra,
+                &mut modifier.is_firework,
+                'f',
+                NoteType::Touch,
+                span,
+            ),
             _ => unreachable!(),
         }
     }

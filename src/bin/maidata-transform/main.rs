@@ -1,10 +1,10 @@
-use maidata::AssociatedBeatmapData;
 use maidata::insn::RawInsn;
 use maidata::transform::{
     normalize::normalize_note,
     transform::{transform_note, Transformer},
     NormalizedNote,
 };
+use maidata::AssociatedBeatmapData;
 use maidata::Level;
 use std::collections::HashMap;
 use std::ops::Deref;
