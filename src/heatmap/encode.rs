@@ -41,9 +41,7 @@ impl Default for HeatmapEncoder {
 
 impl HeatmapEncoder {
     pub fn new() -> Self {
-        Self {
-            frame_dt: FRAME_DT,
-        }
+        Self { frame_dt: FRAME_DT }
     }
 
     pub fn frame_dt(&self) -> f64 {
@@ -125,18 +123,6 @@ impl HeatmapEncoder {
 
     fn encode_slide(&self, frames: &mut Array3<f32>, track: &MaterializedSlideTrack) {
         let num_frames = frames.dim().0;
-
-        // start_tap
-        if let Some(ref tap) = track.start_tap {
-            let fi = time_to_frame(tap.ts, self.frame_dt);
-            if fi < num_frames {
-                let si = tap.key.index() as usize;
-                frames[[fi, si, CH_TAP_INSTANT]] += 1.0;
-                if tap.is_break {
-                    frames[[fi, si, CH_BREAK]] += 1.0;
-                }
-            }
-        }
 
         // slide body
         let events = match expand_slide_path(track) {
