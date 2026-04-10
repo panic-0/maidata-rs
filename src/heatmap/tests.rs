@@ -88,22 +88,6 @@ fn test_encode_single_tap() {
 }
 
 #[test]
-fn test_encode_break_tap() {
-    let encoder = HeatmapEncoder::new();
-    let notes = vec![Note::Tap(MaterializedTap {
-        ts: 0.0,
-        key: Key::new(3).unwrap(),
-        shape: MaterializedTapShape::Ring,
-        is_break: true,
-        is_ex: false,
-        is_each: false,
-    })];
-    let frames = encoder.encode(&notes);
-    assert!(frames[[0, 3, CH_TAP_INSTANT]] > 0.0);
-    assert!(frames[[0, 3, CH_BREAK]] > 0.0);
-}
-
-#[test]
 fn test_encode_touch() {
     let encoder = HeatmapEncoder::new();
     let notes = vec![Note::Touch(MaterializedTouch {

@@ -16,16 +16,15 @@ use crate::transform::{
 use super::sensor::{sensor_index, NUM_SENSORS};
 
 pub const FRAME_DT: f64 = 0.2;
-pub const NUM_CHANNELS: usize = 5;
+pub const NUM_CHANNELS: usize = 4;
 
 // Channel indices
 pub const CH_TAP_INSTANT: usize = 0;
 pub const CH_TOUCH_INSTANT: usize = 1;
 pub const CH_HOLD: usize = 2;
 pub const CH_SLIDE: usize = 3;
-pub const CH_BREAK: usize = 4;
 
-/// Encoder: converts materialized notes into `[T, 33, 5]` sensor-channel values (f32).
+/// Encoder: converts materialized notes into `[T, 33, 4]` sensor-channel values (f32).
 ///
 /// The 33-sensor axis uses the same order as `sensor_index()` and the Python
 /// training-side `_PIXEL_POSITIONS`: A1..A8, B1..B8, C, D1..D8, E1..E8.
@@ -48,7 +47,7 @@ impl HeatmapEncoder {
         self.frame_dt
     }
 
-    /// Encode materialized notes into `[T, 33, 5]` array.
+    /// Encode materialized notes into `[T, 33, 4]` array.
     pub fn encode(&self, notes: &[Note]) -> Array3<f32> {
         let max_time = chart_duration(notes);
         let t = ((max_time / self.frame_dt).ceil() as usize).max(1);
@@ -75,9 +74,6 @@ impl HeatmapEncoder {
         // Key i → sensor index i (A-ring)
         let si = tap.key.index() as usize;
         frames[[fi, si, CH_TAP_INSTANT]] += 1.0;
-        if tap.is_break {
-            frames[[fi, si, CH_BREAK]] += 1.0;
-        }
     }
 
     fn encode_touch(&self, frames: &mut Array3<f32>, touch: &MaterializedTouch) {
@@ -103,9 +99,6 @@ impl HeatmapEncoder {
             let overlap = frame_overlap(hold.ts, hold.ts + hold.dur, fi, self.frame_dt);
             let coverage = (overlap / self.frame_dt) as f32;
             frames[[fi, si, CH_HOLD]] += coverage;
-        }
-        if hold.is_break && f0 < frames.dim().0 {
-            frames[[f0, si, CH_BREAK]] += 1.0;
         }
     }
 
