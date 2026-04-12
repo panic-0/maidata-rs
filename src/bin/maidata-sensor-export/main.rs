@@ -1,8 +1,8 @@
 use maidata::container::lex_maidata;
-use maidata::heatmap::{HeatmapEncoder, NUM_CHANNELS, NUM_SENSORS};
+use maidata::heatmap::encode::{quantize_frames, NUM_FEATURES};
+use maidata::heatmap::HeatmapEncoder;
 use maidata::materialize::MaterializationContext;
 use maidata::Difficulty;
-use ndarray::Array3;
 use ndarray_npy::write_npy;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -51,22 +51,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let encoder = HeatmapEncoder::new();
         let frames_f32 = encoder.encode(&notes);
-        let (t, _s, _c) = frames_f32.dim();
-
-        let mut data = Vec::with_capacity(t * NUM_SENSORS * NUM_CHANNELS);
-        for fi in 0..t {
-            for si in 0..NUM_SENSORS {
-                for ch in 0..NUM_CHANNELS {
-                    let v = frames_f32[[fi, si, ch]];
-                    data.push((v * 255.0).min(255.0) as u8);
-                }
-            }
-        }
-        let frames_u8 = Array3::from_shape_vec((t, NUM_SENSORS, NUM_CHANNELS), data).unwrap();
+        let frames_u8 = quantize_frames(&frames_f32)?;
+        let t = frames_f32.dim().0;
 
         eprintln!(
-            "Encoded: [{} x 33 x 5] ({:.1}s, offset={:.1}s)",
+            "Encoded: [{} x {}] ({:.1}s, offset={:.1}s)",
             t,
+            NUM_FEATURES,
             t as f64 * encoder.frame_dt(),
             offset
         );
@@ -118,21 +109,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let encoder = HeatmapEncoder::new();
     let frames_f32 = encoder.encode(&notes);
 
-    let (t, _s, _c) = frames_f32.dim();
-    let mut data = Vec::with_capacity(t * NUM_SENSORS * NUM_CHANNELS);
-    for fi in 0..t {
-        for si in 0..NUM_SENSORS {
-            for ch in 0..NUM_CHANNELS {
-                let v = frames_f32[[fi, si, ch]];
-                data.push((v * 255.0).min(255.0) as u8);
-            }
-        }
-    }
-    let frames_u8 = Array3::from_shape_vec((t, NUM_SENSORS, NUM_CHANNELS), data).unwrap();
+    let frames_u8 = quantize_frames(&frames_f32)?;
+    let t = frames_f32.dim().0;
 
     eprintln!(
-        "Encoded: [{} x 33 x 5] ({:.1}s)",
+        "Encoded: [{} x {}] ({:.1}s)",
         t,
+        NUM_FEATURES,
         t as f64 * encoder.frame_dt()
     );
 

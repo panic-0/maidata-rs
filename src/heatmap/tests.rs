@@ -69,20 +69,15 @@ fn test_encode_single_tap() {
         is_each: false,
     })];
     let frames = encoder.encode(&notes);
-    assert!(frames.dim().0 >= 1);
-    // Key 0 → sensor 0 (A-ring), tap_instant channel
-    assert!(
-        frames[[0, 0, CH_TAP_INSTANT]] > 0.0,
-        "sensor 0 tap_instant should be > 0"
-    );
-    // Other sensors should be zero
-    for si in 1..NUM_SENSORS {
-        assert_eq!(frames[[0, si, CH_TAP_INSTANT]], 0.0);
+
+    assert_eq!(frames.dim().1, NUM_FEATURES);
+    assert!(frames[[0, TAP_FEATURE_OFFSET]] > 0.0);
+    for key in 1..NUM_TAP_FEATURES {
+        assert_eq!(frames[[0, TAP_FEATURE_OFFSET + key]], 0.0);
     }
-    // Other channels zero
-    for ch in 0..NUM_CHANNELS {
-        if ch != CH_TAP_INSTANT {
-            assert_eq!(frames[[0, 0, ch]], 0.0);
+    for feature in 0..NUM_FEATURES {
+        if feature != TAP_FEATURE_OFFSET {
+            assert_eq!(frames[[0, feature]], 0.0);
         }
     }
 }
@@ -96,14 +91,13 @@ fn test_encode_touch() {
         is_each: false,
     })];
     let frames = encoder.encode(&notes);
-    // C sensor = index 16
-    assert!(frames[[0, 16, CH_TOUCH_INSTANT]] > 0.0);
+
+    assert!(frames[[0, TOUCH_FEATURE_OFFSET + 16]] > 0.0);
 }
 
 #[test]
-fn test_encode_hold_coverage() {
+fn test_encode_hold_head_and_coverage() {
     let encoder = HeatmapEncoder::new();
-    // Hold from t=0.0 to t=0.5, key 2
     let notes = vec![Note::Hold(MaterializedHold {
         ts: 0.0,
         dur: 0.5,
@@ -113,28 +107,67 @@ fn test_encode_hold_coverage() {
         is_each: false,
     })];
     let frames = encoder.encode(&notes);
-    // Frames 0, 1 fully covered, frame 2 partially (0.1/0.2 = 0.5)
-    assert!(
-        frames[[0, 2, CH_HOLD]] > 0.9,
-        "frame 0 hold = {}",
-        frames[[0, 2, CH_HOLD]]
-    );
-    assert!(
-        frames[[1, 2, CH_HOLD]] > 0.9,
-        "frame 1 hold = {}",
-        frames[[1, 2, CH_HOLD]]
-    );
-    assert!(
-        frames[[2, 2, CH_HOLD]] > 0.1,
-        "frame 2 hold = {}",
-        frames[[2, 2, CH_HOLD]]
-    );
+
+    assert!(frames[[0, TAP_FEATURE_OFFSET + 2]] > 0.0);
+    assert!(frames[[0, HOLD_FEATURE_OFFSET]] > 0.9);
+    assert!(frames[[1, HOLD_FEATURE_OFFSET]] > 0.9);
+    assert!(frames[[2, HOLD_FEATURE_OFFSET]] > 0.1);
 }
 
 #[test]
-fn test_encode_accumulates() {
+fn test_encode_touch_hold_head_and_coverage() {
     let encoder = HeatmapEncoder::new();
-    // Two taps at same key and time
+    let notes = vec![Note::TouchHold(MaterializedTouchHold {
+        ts: 0.0,
+        dur: 0.2,
+        sensor: TouchSensor::new('C', None).unwrap(),
+        is_each: false,
+    })];
+    let frames = encoder.encode(&notes);
+
+    assert!(frames[[0, TOUCH_FEATURE_OFFSET + 16]] > 0.0);
+    assert!(frames[[0, HOLD_FEATURE_OFFSET]] > 0.9);
+}
+
+#[test]
+fn test_encode_two_hand_hold_occupancy() {
+    let encoder = HeatmapEncoder::new();
+    let notes = vec![
+        Note::Hold(MaterializedHold {
+            ts: 0.0,
+            dur: 0.2,
+            key: Key::new(0).unwrap(),
+            is_break: false,
+            is_ex: false,
+            is_each: false,
+        }),
+        Note::Hold(MaterializedHold {
+            ts: 0.1,
+            dur: 0.2,
+            key: Key::new(1).unwrap(),
+            is_break: false,
+            is_ex: false,
+            is_each: false,
+        }),
+        Note::Hold(MaterializedHold {
+            ts: 0.1,
+            dur: 0.2,
+            key: Key::new(2).unwrap(),
+            is_break: false,
+            is_ex: false,
+            is_each: false,
+        }),
+    ];
+    let frames = encoder.encode(&notes);
+
+    assert!((frames[[0, HOLD_FEATURE_OFFSET]] - 1.0).abs() < 0.01);
+    assert!((frames[[0, HOLD_FEATURE_OFFSET + 1]] - 0.5).abs() < 0.01);
+    assert!(frames[[0, HOLD_FEATURE_OFFSET]] >= frames[[0, HOLD_FEATURE_OFFSET + 1]]);
+}
+
+#[test]
+fn test_encode_accumulates_tap_counts() {
+    let encoder = HeatmapEncoder::new();
     let notes = vec![
         Note::Tap(MaterializedTap {
             ts: 0.1,
@@ -154,9 +187,10 @@ fn test_encode_accumulates() {
         }),
     ];
     let frames = encoder.encode(&notes);
+
     assert!(
-        (frames[[0, 0, CH_TAP_INSTANT]] - 2.0).abs() < 0.01,
+        (frames[[0, TAP_FEATURE_OFFSET]] - 2.0).abs() < 0.01,
         "expected 2.0, got {}",
-        frames[[0, 0, CH_TAP_INSTANT]]
+        frames[[0, TAP_FEATURE_OFFSET]]
     );
 }

@@ -1,10 +1,10 @@
-use maidata::heatmap::{HeatmapEncoder, NUM_CHANNELS, NUM_SENSORS};
+use maidata::heatmap::encode::compact_quantized_frames;
+use maidata::heatmap::HeatmapEncoder;
 use maidata::materialize::{
     MaterializationContext, MaterializedHold, MaterializedSlideSegment, MaterializedSlideTrack,
     MaterializedTap, MaterializedTouch, MaterializedTouchHold, Note,
 };
 use maidata::transform::transform::{Transformable, Transformer};
-use ndarray::Array3;
 use ndarray_npy::write_npy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -150,14 +150,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .and_then(|m| m.get(&(diff as u8)))
                 .copied();
 
-            // Skip charts below level 10
-            let min_level: u8 = match diff_view.level() {
-                Some(maidata::Level::Normal(lv)) | Some(maidata::Level::Plus(lv)) => lv,
-                _ => 0,
-            };
-            if min_level < 10 {
-                continue;
-            }
+            // // Skip charts below level 10
+            // let min_level: u8 = match diff_view.level() {
+            //     Some(maidata::Level::Normal(lv)) | Some(maidata::Level::Plus(lv)) => lv,
+            //     _ => 0,
+            // };
+            // if min_level < 10 {
+            //     continue;
+            // }
 
             let offset = diff_view.offset().unwrap_or(0.0);
 
@@ -173,7 +173,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let total_frames = frames_f32.dim().0;
 
             // Keep only non-empty frames, quantize to u8
-            let (dense_u8, frame_offsets) = compact_frames(&frames_f32);
+            let (dense_u8, frame_offsets) = compact_quantized_frames(&frames_f32)?;
             let n = dense_u8.dim().0;
             if n == 0 {
                 continue;
@@ -203,7 +203,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if mirror_offset > 0 {
                 let mirrored_notes = mirror_notes(&notes);
                 let mirrored_frames = encoder.encode(&mirrored_notes);
-                let (mirrored_u8, _) = compact_frames(&mirrored_frames);
+                let (mirrored_u8, _) = compact_quantized_frames(&mirrored_frames)?;
                 let mirrored_total = mirrored_frames.dim().0;
                 let n_m = mirrored_u8.dim().0;
                 if n_m == 0 {
@@ -238,46 +238,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Filter out all-zero frames, quantize to u8 (×255, clamp 255).
-/// Returns dense Array3<u8> [N, 33, 5] and original frame indices.
-fn compact_frames(frames: &Array3<f32>) -> (Array3<u8>, Vec<u32>) {
-    let (t, _sensors, _ch) = frames.dim();
-
-    let mut indices = Vec::new();
-    let mut data = Vec::new();
-
-    for fi in 0..t {
-        // Check if frame has any non-zero value
-        let mut has = false;
-        for si in 0..NUM_SENSORS {
-            for ch in 0..NUM_CHANNELS {
-                if frames[[fi, si, ch]] != 0.0 {
-                    has = true;
-                    break;
-                }
-            }
-            if has {
-                break;
-            }
-        }
-
-        if !has {
-            continue;
-        }
-
-        indices.push(fi as u32);
-        for si in 0..NUM_SENSORS {
-            for ch in 0..NUM_CHANNELS {
-                let v = frames[[fi, si, ch]];
-                data.push((v * 255.0).min(255.0) as u8);
-            }
-        }
-    }
-
-    let n = indices.len();
-    let arr = Array3::from_shape_vec((n, NUM_SENSORS, NUM_CHANNELS), data).unwrap();
-    (arr, indices)
-}
-
 fn diff_discriminant(d: maidata::Difficulty) -> &'static str {
     use maidata::Difficulty::*;
     match d {
@@ -375,11 +335,11 @@ mod tests {
         let original = encoder.encode(&notes);
         let mirrored = encoder.encode(&mirror_notes(&notes));
 
-        // Original: sensor 0 has tap; mirrored: sensor 7 has tap
-        assert!(original[[0, 0, CH_TAP_INSTANT]] > 0.0);
-        assert_eq!(original[[0, 7, CH_TAP_INSTANT]], 0.0);
-        assert!(mirrored[[0, 7, CH_TAP_INSTANT]] > 0.0);
-        assert_eq!(mirrored[[0, 0, CH_TAP_INSTANT]], 0.0);
+        // Original: key 0 has tap; mirrored: key 7 has tap
+        assert!(original[[0, TAP_FEATURE_OFFSET]] > 0.0);
+        assert_eq!(original[[0, TAP_FEATURE_OFFSET + 7]], 0.0);
+        assert!(mirrored[[0, TAP_FEATURE_OFFSET + 7]] > 0.0);
+        assert_eq!(mirrored[[0, TAP_FEATURE_OFFSET]], 0.0);
     }
 
     #[test]
@@ -394,8 +354,8 @@ mod tests {
         let original = encoder.encode(&notes);
         let mirrored = encoder.encode(&mirror_notes(&notes));
 
-        assert!(original[[0, 26, CH_TOUCH_INSTANT]] > 0.0);
-        assert!(mirrored[[0, 32, CH_TOUCH_INSTANT]] > 0.0);
+        assert!(original[[0, TOUCH_FEATURE_OFFSET + 26]] > 0.0);
+        assert!(mirrored[[0, TOUCH_FEATURE_OFFSET + 32]] > 0.0);
     }
 
     #[test]
@@ -413,8 +373,14 @@ mod tests {
         let mirrored = encoder.encode(&mirror_notes(&notes));
 
         // Mirrored hold head (tap) on sensor 7
-        assert!(mirrored[[0, 7, CH_TAP_INSTANT]] > 0.0, "mirrored hold head");
-        // Mirrored hold body on sensor 7
-        assert!(mirrored[[0, 7, CH_HOLD]] > 0.0, "mirrored hold body");
+        assert!(
+            mirrored[[0, TAP_FEATURE_OFFSET + 7]] > 0.0,
+            "mirrored hold head"
+        );
+        // Mirrored hold body occupies one hand.
+        assert!(
+            mirrored[[0, HOLD_FEATURE_OFFSET]] > 0.0,
+            "mirrored hold body"
+        );
     }
 }
