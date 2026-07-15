@@ -11,6 +11,7 @@ use super::{NormalizedNote, NormalizedSlideSegmentShape};
 pub struct Transformer {
     pub rotation: u8,
     pub flip: bool,
+    pub vertical_flip: bool,
 }
 
 pub trait Transformable {
@@ -22,6 +23,9 @@ impl Transformable for Key {
         let mut index = (self.index() + transformer.rotation) % 8;
         if transformer.flip {
             index = 7 - index;
+        }
+        if transformer.vertical_flip {
+            index = (11 - index) % 8;
         }
         index.try_into().unwrap()
     }
@@ -38,6 +42,13 @@ impl Transformable for TouchSensor {
             index = match group {
                 'A' | 'B' => 7 - index,
                 'D' | 'E' => (8 - index) % 8,
+                _ => unreachable!(),
+            };
+        }
+        if transformer.vertical_flip {
+            index = match group {
+                'A' | 'B' => (11 - index) % 8,
+                'D' | 'E' => (12 - index) % 8,
                 _ => unreachable!(),
             };
         }
@@ -79,7 +90,7 @@ impl Transformable for NormalizedTouchHoldParams {
 
 impl Transformable for NormalizedSlideSegment {
     fn transform(&self, transformer: Transformer) -> Self {
-        let shape = if transformer.flip {
+        let shape = if transformer.flip ^ transformer.vertical_flip {
             match self.shape() {
                 NormalizedSlideSegmentShape::Straight => NormalizedSlideSegmentShape::Straight,
                 NormalizedSlideSegmentShape::CircleL => NormalizedSlideSegmentShape::CircleR,

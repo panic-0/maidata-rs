@@ -86,7 +86,11 @@ impl SlideDataGetter {
                 continue;
             }
             for rotation in 0..8 {
-                let transformer = Transformer { rotation, flip };
+                let transformer = Transformer {
+                    rotation,
+                    flip,
+                    vertical_flip: false,
+                };
                 let start = Key::new(0).unwrap().transform(transformer).index();
                 let destination = Key::new(destination as u8)
                     .unwrap()

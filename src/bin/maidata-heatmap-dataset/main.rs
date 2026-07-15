@@ -14,27 +14,40 @@ use walkdir::WalkDir;
 const MIRROR: Transformer = Transformer {
     rotation: 0,
     flip: true,
+    vertical_flip: false,
 };
 
-fn mirror_notes(notes: &[Note]) -> Vec<Note> {
+const VERTICAL_FLIP: Transformer = Transformer {
+    rotation: 0,
+    flip: false,
+    vertical_flip: true,
+};
+
+const MIRROR_VERTICAL_FLIP: Transformer = Transformer {
+    rotation: 0,
+    flip: true,
+    vertical_flip: true,
+};
+
+fn transform_notes(notes: &[Note], transformer: Transformer) -> Vec<Note> {
     notes
         .iter()
         .map(|note| match note {
             Note::Bpm(b) => Note::Bpm(*b),
             Note::Tap(p) => Note::Tap(MaterializedTap {
-                key: p.key.transform(MIRROR),
+                key: p.key.transform(transformer),
                 ..*p
             }),
             Note::Touch(p) => Note::Touch(MaterializedTouch {
-                sensor: p.sensor.transform(MIRROR),
+                sensor: p.sensor.transform(transformer),
                 ..*p
             }),
             Note::Hold(p) => Note::Hold(MaterializedHold {
-                key: p.key.transform(MIRROR),
+                key: p.key.transform(transformer),
                 ..*p
             }),
             Note::TouchHold(p) => Note::TouchHold(MaterializedTouchHold {
-                sensor: p.sensor.transform(MIRROR),
+                sensor: p.sensor.transform(transformer),
                 ..*p
             }),
             Note::SlideTrack(p) => Note::SlideTrack(MaterializedSlideTrack {
@@ -42,8 +55,8 @@ fn mirror_notes(notes: &[Note]) -> Vec<Note> {
                     .segments
                     .iter()
                     .map(|s| MaterializedSlideSegment {
-                        start: s.start.transform(MIRROR),
-                        destination: s.destination.transform(MIRROR),
+                        start: s.start.transform(transformer),
+                        destination: s.destination.transform(transformer),
                         shape: maidata::transform::NormalizedSlideSegment::new(
                             s.shape,
                             maidata::transform::NormalizedSlideSegmentParams {
@@ -51,7 +64,7 @@ fn mirror_notes(notes: &[Note]) -> Vec<Note> {
                                 destination: s.destination,
                             },
                         )
-                        .transform(MIRROR)
+                        .transform(transformer)
                         .shape(),
                     })
                     .collect(),
@@ -61,7 +74,7 @@ fn mirror_notes(notes: &[Note]) -> Vec<Note> {
         .collect()
 }
 
-fn mirror_song_id(song_id: &str, offset: u64) -> String {
+fn offset_song_id(song_id: &str, offset: u64) -> String {
     let numeric: String = song_id.split('_').next().unwrap_or(song_id).to_string();
     let rest = &song_id[numeric.len()..];
     if let Ok(id) = numeric.parse::<u64>() {
@@ -77,16 +90,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_dir = "";
     let mut limit: Option<usize> = None;
     let mut mirror_offset: Option<u64> = None;
+    let mut vertical_flip_offset: Option<u64> = None;
 
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
             "--mirror" => {
-                mirror_offset = Some(
-                    args.get(i + 1)
-                        .and_then(|s| s.parse().ok())
-                        .unwrap_or(10_000_000),
-                )
+                let (offset, consumed) = parse_optional_offset(&args, i, 10_000_000);
+                mirror_offset = Some(offset);
+                i += consumed;
+            }
+            "--vertical-flip" | "--flip-vertical" | "--flip-y" => {
+                let (offset, consumed) = parse_optional_offset(&args, i, 20_000_000);
+                vertical_flip_offset = Some(offset);
+                i += consumed;
             }
             _ if chart_root.is_empty() => chart_root = &args[i],
             _ if output_dir.is_empty() => output_dir = &args[i],
@@ -95,19 +112,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         i += 1;
     }
 
-    // --mirror with explicit offset: already parsed above
-
     if chart_root.is_empty() || output_dir.is_empty() {
         eprintln!(
-            "usage: {} [--mirror [offset]] <chart_root> <output_dir> [limit]",
+            "usage: {} [--mirror [offset]] [--vertical-flip [offset]] <chart_root> <output_dir> [limit]",
             args[0]
         );
-        eprintln!("  --mirror [offset]  append mirrored charts (default offset: 10000000)");
+        eprintln!("  --mirror [offset]         append mirrored charts (default offset: 10000000)");
+        eprintln!("  --vertical-flip [offset]  append vertically flipped charts (default offset: 20000000)");
         std::process::exit(1);
     }
     std::fs::create_dir_all(output_dir)?;
 
-    let mirror_offset = mirror_offset.unwrap_or(0);
+    let mut variants = Vec::new();
+    if let Some(offset) = mirror_offset.filter(|&offset| offset > 0) {
+        variants.push(AugmentationVariant {
+            transformer: MIRROR,
+            offset,
+        });
+    }
+    if let Some(offset) = vertical_flip_offset.filter(|&offset| offset > 0) {
+        variants.push(AugmentationVariant {
+            transformer: VERTICAL_FLIP,
+            offset,
+        });
+    }
+    if let (Some(mirror_offset), Some(vertical_flip_offset)) = (mirror_offset, vertical_flip_offset)
+    {
+        if mirror_offset > 0 && vertical_flip_offset > 0 {
+            variants.push(AugmentationVariant {
+                transformer: MIRROR_VERTICAL_FLIP,
+                offset: mirror_offset + vertical_flip_offset,
+            });
+        }
+    }
 
     eprintln!("Fetching chart constants from diving-fish...");
     let label_map = fetch_labels()?;
@@ -169,59 +206,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
 
-            let frames_f32 = encoder.encode(&notes);
-            let total_frames = frames_f32.dim().0;
-
-            // Keep only non-empty frames, quantize to u8
-            let (dense_u8, frame_offsets) = compact_quantized_frames(&frames_f32)?;
-            let n = dense_u8.dim().0;
-            if n == 0 {
+            let sample = encode_sample(&encoder, &notes)?;
+            if sample.n == 0 {
                 continue;
             }
 
             let filename = format!("{}_{}.npy", song_id, diff_discriminant(diff));
             let out_path = PathBuf::from(output_dir).join(&filename);
-            write_npy(&out_path, &dense_u8)?;
+            write_npy(&out_path, &sample.dense_u8)?;
 
             manifest.push(ManifestEntry {
                 song_id: song_id.clone(),
                 difficulty: format!("{diff:?}"),
                 chart_constant: cc,
                 file: filename,
-                total_frames,
+                total_frames: sample.total_frames,
                 frame_dt: encoder.frame_dt(),
-                frame_offsets: frame_offsets.clone(),
+                frame_offsets: sample.frame_offsets,
             });
 
             eprintln!(
                 "  {}: {} [{diff:?}] → {n}/{total_frames} frames",
                 song_id,
                 maidata.title(),
+                n = sample.n,
+                total_frames = sample.total_frames,
             );
 
-            // Mirror augmentation
-            if mirror_offset > 0 {
-                let mirrored_notes = mirror_notes(&notes);
-                let mirrored_frames = encoder.encode(&mirrored_notes);
-                let (mirrored_u8, _) = compact_quantized_frames(&mirrored_frames)?;
-                let mirrored_total = mirrored_frames.dim().0;
-                let n_m = mirrored_u8.dim().0;
-                if n_m == 0 {
+            for variant in &variants {
+                let augmented_notes = transform_notes(&notes, variant.transformer);
+                let augmented_sample = encode_sample(&encoder, &augmented_notes)?;
+                if augmented_sample.n == 0 {
                     continue;
                 }
-                let mirror_id = mirror_song_id(&song_id, mirror_offset);
-                let mirror_file = format!("{}_{}.npy", mirror_id, diff_discriminant(diff));
-                let mirror_path = PathBuf::from(output_dir).join(&mirror_file);
-                write_npy(&mirror_path, &mirrored_u8)?;
+                let augmented_id = offset_song_id(&song_id, variant.offset);
+                let augmented_file = format!("{}_{}.npy", augmented_id, diff_discriminant(diff));
+                let augmented_path = PathBuf::from(output_dir).join(&augmented_file);
+                write_npy(&augmented_path, &augmented_sample.dense_u8)?;
 
                 manifest.push(ManifestEntry {
-                    song_id: mirror_id,
+                    song_id: augmented_id,
                     difficulty: format!("{diff:?}"),
                     chart_constant: cc,
-                    file: mirror_file,
-                    total_frames: mirrored_total,
+                    file: augmented_file,
+                    total_frames: augmented_sample.total_frames,
                     frame_dt: encoder.frame_dt(),
-                    frame_offsets: frame_offsets.clone(),
+                    frame_offsets: augmented_sample.frame_offsets,
                 });
             }
         }
@@ -237,7 +267,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Filter out all-zero frames, quantize to u8 (×255, clamp 255).
+fn parse_optional_offset(args: &[String], flag_index: usize, default: u64) -> (u64, usize) {
+    match args.get(flag_index + 1).and_then(|s| s.parse().ok()) {
+        Some(offset) => (offset, 1),
+        None => (default, 0),
+    }
+}
+
+struct AugmentationVariant {
+    transformer: Transformer,
+    offset: u64,
+}
+
+struct EncodedSample {
+    dense_u8: ndarray::Array2<u8>,
+    total_frames: usize,
+    frame_offsets: Vec<u32>,
+    n: usize,
+}
+
+fn encode_sample(
+    encoder: &HeatmapEncoder,
+    notes: &[Note],
+) -> Result<EncodedSample, Box<dyn std::error::Error>> {
+    let frames_f32 = encoder.encode(notes);
+    let total_frames = frames_f32.dim().0;
+    let (dense_u8, frame_offsets) = compact_quantized_frames(&frames_f32)?;
+    let n = dense_u8.dim().0;
+    Ok(EncodedSample {
+        dense_u8,
+        total_frames,
+        frame_offsets,
+        n,
+    })
+}
+
 fn diff_discriminant(d: maidata::Difficulty) -> &'static str {
     use maidata::Difficulty::*;
     match d {
@@ -321,6 +385,33 @@ mod tests {
     }
 
     #[test]
+    fn test_vertical_flip_tap_and_ab_mapping() {
+        assert_eq!(Key::new(0).unwrap().transform(VERTICAL_FLIP).index(), 3);
+        assert_eq!(Key::new(1).unwrap().transform(VERTICAL_FLIP).index(), 2);
+        assert_eq!(Key::new(4).unwrap().transform(VERTICAL_FLIP).index(), 7);
+        assert_eq!(Key::new(5).unwrap().transform(VERTICAL_FLIP).index(), 6);
+
+        let a1 = TouchSensor::new('A', Some(0)).unwrap();
+        let a4 = TouchSensor::new('A', Some(3)).unwrap();
+        let b6 = TouchSensor::new('B', Some(5)).unwrap();
+        let b7 = TouchSensor::new('B', Some(6)).unwrap();
+        assert_eq!(a1.transform(VERTICAL_FLIP), a4);
+        assert_eq!(b6.transform(VERTICAL_FLIP), b7);
+    }
+
+    #[test]
+    fn test_vertical_flip_de_mapping() {
+        let d1 = TouchSensor::new('D', Some(0)).unwrap();
+        let d5 = TouchSensor::new('D', Some(4)).unwrap();
+        let e3 = TouchSensor::new('E', Some(2)).unwrap();
+        let e6 = TouchSensor::new('E', Some(5)).unwrap();
+        let e8 = TouchSensor::new('E', Some(7)).unwrap();
+        assert_eq!(d1.transform(VERTICAL_FLIP), d5);
+        assert_eq!(e3.transform(VERTICAL_FLIP), e3);
+        assert_eq!(e6.transform(VERTICAL_FLIP), e8);
+    }
+
+    #[test]
     fn test_mirror_tap_sensor_index() {
         // Tap on key 0 (A1, sensor 0) should mirror to key 7 (A8, sensor 7)
         let encoder = HeatmapEncoder::new();
@@ -333,7 +424,7 @@ mod tests {
             is_each: false,
         })];
         let original = encoder.encode(&notes);
-        let mirrored = encoder.encode(&mirror_notes(&notes));
+        let mirrored = encoder.encode(&transform_notes(&notes, MIRROR));
 
         // Original: key 0 has tap; mirrored: key 7 has tap
         assert!(original[[0, TAP_FEATURE_OFFSET]] > 0.0);
@@ -352,7 +443,7 @@ mod tests {
             is_each: false,
         })];
         let original = encoder.encode(&notes);
-        let mirrored = encoder.encode(&mirror_notes(&notes));
+        let mirrored = encoder.encode(&transform_notes(&notes, MIRROR));
 
         assert!(original[[0, TOUCH_FEATURE_OFFSET + 26]] > 0.0);
         assert!(mirrored[[0, TOUCH_FEATURE_OFFSET + 32]] > 0.0);
@@ -370,7 +461,7 @@ mod tests {
             is_ex: false,
             is_each: false,
         })];
-        let mirrored = encoder.encode(&mirror_notes(&notes));
+        let mirrored = encoder.encode(&transform_notes(&notes, MIRROR));
 
         // Mirrored hold head (tap) on sensor 7
         assert!(

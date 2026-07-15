@@ -182,6 +182,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                                     destination: segment.destination.transform(Transformer {
                                         rotation,
                                         flip: false,
+                                        vertical_flip: false,
                                     }),
                                 },
                             )

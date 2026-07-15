@@ -396,6 +396,7 @@ fn expand_fan_slide(track: &MaterializedSlideTrack) -> Option<Vec<(TouchSensor, 
         let transformer = Transformer {
             rotation,
             flip: false,
+            vertical_flip: false,
         };
         let dest = seg.destination.transform(transformer);
         let norm_seg = NormalizedSlideSegment::new(

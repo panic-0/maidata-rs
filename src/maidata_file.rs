@@ -25,7 +25,7 @@ impl Maidata {
         &self.artist
     }
 
-    pub fn iter_difficulties(&self) -> impl Iterator<Item = AssociatedBeatmapData> {
+    pub fn iter_difficulties(&self) -> impl Iterator<Item = AssociatedBeatmapData<'_>> {
         self.difficulties
             .iter()
             .map(move |diff| AssociatedBeatmapData {
@@ -55,7 +55,10 @@ impl Maidata {
     }
 
     pub(crate) fn set_difficulties(&mut self, difficulties: Vec<BeatmapData>) {
-        let mut diffs = difficulties;
+        let mut diffs: Vec<_> = difficulties
+            .into_iter()
+            .filter(|diff| diff.has_insns())
+            .collect();
         diffs.sort_by_key(|x| x.difficulty());
         self.difficulties = diffs;
     }
@@ -106,6 +109,10 @@ impl BeatmapData {
 
     pub(crate) fn set_single_message(&mut self, message: String) {
         self.single_message = Some(message);
+    }
+
+    fn has_insns(&self) -> bool {
+        !self.insns.is_empty()
     }
 }
 

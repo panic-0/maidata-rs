@@ -21,7 +21,16 @@ fn minimal(group: &[Vec<NormalizedNote>]) -> Vec<Vec<NormalizedNote>> {
                     .map(|bundle| {
                         bundle
                             .iter()
-                            .map(|x| transform_note(x, Transformer { rotation, flip }))
+                            .map(|x| {
+                                transform_note(
+                                    x,
+                                    Transformer {
+                                        rotation,
+                                        flip,
+                                        vertical_flip: false,
+                                    },
+                                )
+                            })
                             .collect()
                     })
                     .collect::<Vec<_>>(),
