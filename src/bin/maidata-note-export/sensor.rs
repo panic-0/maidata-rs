@@ -134,8 +134,7 @@ mod tests {
     #[test]
     fn test_all_key_positions_in_circle() {
         let center = (720.0, 720.0);
-        for i in 0..8 {
-            let pos = SENSOR_POSITIONS[i];
+        for (i, pos) in SENSOR_POSITIONS.iter().enumerate().take(8) {
             let dist = ((pos.0 - center.0).powi(2) + (pos.1 - center.1).powi(2)).sqrt();
             assert!(
                 dist > 400.0 && dist < 700.0,
